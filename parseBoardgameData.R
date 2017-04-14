@@ -86,8 +86,8 @@ getRatedGames <- function(username) {
                        username,
                        "could not be found."))
         
-        # .. and return an empty list
-        return(list())
+        # .. and return an empty vector
+        return(vector(mode = "character"))
       }
       
       break
@@ -97,7 +97,7 @@ getRatedGames <- function(username) {
     Sys.sleep(10) 
   }
   
-  return(collection)
+  return(xml_find_all(collection, "//item"))
                     
 }
 
