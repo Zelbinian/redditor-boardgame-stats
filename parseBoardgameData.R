@@ -14,6 +14,7 @@
 
 require("xml2")
 require("httr")
+require("magrittr")
 
 ####################################################################################
 # FUNCTION REPOSITORY
