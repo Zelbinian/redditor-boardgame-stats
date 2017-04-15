@@ -101,6 +101,8 @@ getRatedGames <- function(username) {
                     
 }
 
+
+
 ####################################################################################
 # STEP 1: Get the usernames of each member in the Redditors guild on BGG
 ####################################################################################
@@ -119,4 +121,8 @@ guild_usernames <- retrieveAllUserNames(guild_data_url)
 # full details of that game in a data.frame
 ####################################################################################
 
-
+games_list <- data.frame("ID" = integer(0), "Name" = character(0), "Ratings" = list(), 
+                         "Guild Rating" = numeric(0), "BGG Rating" = numeric(0), 
+                         "Min Players" = integer(0), "Max Players" = integer(0), 
+                         "Min Playtime" = integer(0), "Max Playtime" = integer(0), 
+                         "Num Owned" = integer(0), stringsAsFactors = FALSE)
