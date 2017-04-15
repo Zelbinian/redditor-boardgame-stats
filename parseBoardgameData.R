@@ -102,6 +102,12 @@ getRatedGames <- function(username) {
                     
 }
 
+addToGamesList <- function(game_nodes) {
+    if ( length(game_nodes) == 0 ) return()
+    
+    
+}
+
 
 
 ####################################################################################
@@ -122,8 +128,8 @@ guild_usernames <- retrieveAllUserNames(guild_data_url)
 # full details of that game in a data.frame
 ####################################################################################
 
-games_list <- data.frame("ID" = integer(0), "Name" = character(0), "Ratings" = list(), 
-                         "Guild Rating" = numeric(0), "BGG Rating" = numeric(0), 
-                         "Min Players" = integer(0), "Max Players" = integer(0), 
-                         "Min Playtime" = integer(0), "Max Playtime" = integer(0), 
-                         "Num Owned" = integer(0), stringsAsFactors = FALSE)
+games_list <- data.frame(ID = integer(0), Name = character(0), Ratings = numeric(0), 
+                         GuildRating = numeric(0), BGGRating = numeric(0), 
+                         MinPlayers = integer(0), MaxPlayers = integer(0), 
+                         MinPlaytime = integer(0), MaxPlaytime = integer(0), 
+                         CopiesOwned = integer(0), stringsAsFactors = FALSE)
