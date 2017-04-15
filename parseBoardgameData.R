@@ -102,9 +102,17 @@ getRatedGames <- function(username) {
                     
 }
 
-addToGamesList <- function(game_nodes) {
+addToGamesList <- function(game_nodes, games_list) {
     if ( length(game_nodes) == 0 ) return()
     
+    id <- xml_text(xml_find_all(game_nodes, "@objectid"))
+    name <- xml_text(xml_find_all(game_nodes, "//name"))
+    member_rating <- xml_text(xml_find_all(game_nodes, "//rating/@value"))
+    
+    new_games_list <- data.frame(ID = id, Name = name, MemberRating = member_rating,
+                                 stringsAsFactors = FALSE)
+    
+    return (rbind(games_list, new_games_list))
     
 }
 
@@ -121,15 +129,15 @@ addToGamesList <- function(game_nodes) {
 
 guild_data_url <- "https://www.boardgamegeek.com/xmlapi2/guild?id=432&members=1"
 
-guild_usernames <- retrieveAllUserNames(guild_data_url)
+# guild_usernames <- retrieveAllUserNames(guild_data_url)
 
 ####################################################################################
 # STEP 2: Get each member's collection and, for each game they have rated, put the 
 # full details of that game in a data.frame
 ####################################################################################
 
-games_list <- data.frame(ID = integer(0), Name = character(0), Ratings = numeric(0), 
-                         GuildRating = numeric(0), BGGRating = numeric(0), 
+games_list <- data.frame(ID = integer(0), Name = character(0), 
+                         MemberRating = numeric(0), BGGRating = numeric(0), 
                          MinPlayers = integer(0), MaxPlayers = integer(0), 
                          MinPlaytime = integer(0), MaxPlaytime = integer(0), 
                          CopiesOwned = integer(0), stringsAsFactors = FALSE)
