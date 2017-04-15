@@ -76,10 +76,10 @@ getRatedGames <- function(username) {
   repeat{
     collection <- read_xml(request)
     
-    if (length(xml_find_all(games_list, "//message")) == 0 ) {
+    if (length(xml_find_all(collection, "//message")) == 0 ) {
       
       # sometimes the message warning might actually be an error, not a queuing response
-      if (length(xml_find_all(games_list, "//error")) > 0) {
+      if (length(xml_find_all(collection, "//error")) > 0) {
         
         # in this case, throw a warning to the console...
         warning(paste("The collection of rated games for user",
@@ -87,7 +87,7 @@ getRatedGames <- function(username) {
                        "could not be found."))
         
         # .. and return an empty vector
-        return(vector(mode = "character"))
+        return(list())
       }
       
       break
