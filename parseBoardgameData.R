@@ -99,7 +99,7 @@ getRatedGames <- function(username) {
     Sys.sleep(sleeptime__) 
   }
   
-  collection <- content(response$content)
+  collection <- read_xml(response$content)
   
   # sometimes the response might actually be an error,
   if (length(xml_find_all(collection, "//error")) > 0) {
