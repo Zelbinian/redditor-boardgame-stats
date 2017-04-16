@@ -137,7 +137,10 @@ getGuildsRatedGames <- function(guild_usernames, games_list) {
         
         users_rated_games <- getRatedGames(guild_usernames[i])
         
-        games_list <- addUsersGames(users_rated_games, games_list)
+        if ( length(users_rated_games) > 0 ) {
+            
+            games_list <- addUsersGames(users_rated_games, games_list)
+        }
         
         Sys.sleep(sleeptime__)
     }
@@ -154,7 +157,7 @@ getGuildsRatedGames <- function(guild_usernames, games_list) {
 
 # real guild id = 1290
 
-guild_data_url <- "https://www.boardgamegeek.com/xmlapi2/guild?id=432&members=1"
+guild_data_url <- "https://www.boardgamegeek.com/xmlapi2/guild?id=1727&members=1"
 
 guild_usernames <- retrieveAllUserNames(guild_data_url)
 
