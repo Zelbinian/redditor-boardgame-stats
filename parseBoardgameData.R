@@ -137,7 +137,4 @@ guild_data_url <- "https://www.boardgamegeek.com/xmlapi2/guild?id=432&members=1"
 ####################################################################################
 
 games_list <- data.frame(ID = integer(0), Name = character(0), 
-                         MemberRating = numeric(0), BGGRating = numeric(0), 
-                         MinPlayers = integer(0), MaxPlayers = integer(0), 
-                         MinPlaytime = integer(0), MaxPlaytime = integer(0), 
-                         CopiesOwned = integer(0), stringsAsFactors = FALSE)
+                         MemberRating = numeric(0), stringsAsFactors = FALSE)
