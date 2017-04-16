@@ -67,7 +67,7 @@ getRatedGames <- function(username) {
   
   # stitch together the url for the api request
   request <- paste0("https://www.boardgamegeek.com/xmlapi2/collection?", # api path for collection info
-                    "username=",username,                                # for this user
+                    "username=",gsub(" ", "%20", username),              # for this user (sanitized string)
                     "&rated=1",                                          # only rated games
                     "&stats=1",                                          # full stats (including ratings)
                     "&excludesubtype=boardgameexpansion")                # exclude expansions
