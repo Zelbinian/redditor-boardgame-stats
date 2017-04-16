@@ -74,31 +74,40 @@ getRatedGames <- function(username) {
   
   # The API works a little weirdly. Sometimes you have to wait for the server to
   # retrieve the result. Unfortunately you can't use a callback or a promise. If the
-  # data is not ready yet, you get a <message> node telling you so. 
+  # data is not ready yet, you get an http status of 202.
   
   repeat{
-    collection <- read_xml(request)
+    response <- GET(request)
     
-    if (length(xml_find_all(collection, "//message")) == 0 ) {
-      
-      # sometimes the message warning might actually be an error, not a queuing response
-      if (length(xml_find_all(collection, "//error")) > 0) {
+    # if we get a 200 we're good
+    if (response$status_code == 200) break
+    
+    # protecting against some other thing going wrong
+    if (response$status_code != 202) {
         
         # in this case, throw a warning to the console...
         warning(paste("The collection of rated games for user",
-                       username,
-                       "could not be found."))
+                      username,
+                      "could not be found."))
         
-        # .. and return an empty vector
         return(list())
-      }
-      
-      break
     }
     
     # wait before re-requesting to minimize the number of times this loop will run
     Sys.sleep(sleeptime__) 
   }
+      
+    # sometimes the message warning might actually be an error,
+    if (length(xml_find_all(collection, "//error")) > 0) {
+        
+        # in this case, throw a warning to the console...
+        warning(paste("The collection of rated games for user",
+                      username,
+                      "could not be found."))
+        
+        # .. and return an empty vector
+        return(list())
+    }
   
   return(xml_find_all(collection, "//item"))
                     
