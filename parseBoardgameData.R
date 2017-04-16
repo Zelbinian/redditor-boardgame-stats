@@ -121,11 +121,9 @@ addUsersGames <- function(games, games_list) {
     if ( length(games) == 0 ) return(games_list)
     
     id <- as.integer(xml_text(xml_find_all(games, "@objectid")))
-    name <- xml_text(xml_find_all(games, "//name"))
     member_rating <- as.numeric(xml_text(xml_find_all(games, "//rating/@value")))
     
-    new_games_list <- data.frame(ID = id, Name = name, MemberRating = member_rating,
-                                 stringsAsFactors = FALSE)
+    new_games_list <- data.frame(ID = id, MemberRating = member_rating)
     
     return (rbind(games_list, new_games_list))
     
@@ -165,8 +163,7 @@ guild_usernames <- retrieveAllUserNames(guild_data_url)
 # STEP 2: Get each member's collection of rated games
 ####################################################################################
 
-guild_games_list <- data.frame(ID = integer(0), Name = character(0), 
-                         MemberRating = numeric(0), stringsAsFactors = FALSE)
+guild_games_list <- data.frame(ID = integer(0), MemberRating = numeric(0))
 
 # apply or any of the other usual tricks for looping in R won't work because guild_usernames
 # is just a simple vector, so to grab the list of rated games (and their ratings) for
