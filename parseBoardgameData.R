@@ -118,11 +118,11 @@ getRatedGames <- function(username) {
 }
 
 addUsersGames <- function(games, games_list) {
-    if ( length(games) == 0 ) return()
+    if ( length(games) == 0 ) return(games_list)
     
-    id <- xml_text(xml_find_all(games, "@objectid"))
+    id <- as.integer(xml_text(xml_find_all(games, "@objectid")))
     name <- xml_text(xml_find_all(games, "//name"))
-    member_rating <- xml_text(xml_find_all(games, "//rating/@value"))
+    member_rating <- as.numeric(xml_text(xml_find_all(games, "//rating/@value")))
     
     new_games_list <- data.frame(ID = id, Name = name, MemberRating = member_rating,
                                  stringsAsFactors = FALSE)
