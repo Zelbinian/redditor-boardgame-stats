@@ -76,38 +76,42 @@ getRatedGames <- function(username) {
   # retrieve the result. Unfortunately you can't use a callback or a promise. If the
   # data is not ready yet, you get an http status of 202.
   
+  response <- NULL
+  
   repeat{
-    response <- GET(request)
-    
-    # if we get a 200 we're good
-    if (response$status_code == 200) break
-    
-    # protecting against some other thing going wrong
-    if (response$status_code != 202) {
-        
-        # in this case, throw a warning to the console...
-        warning(paste("The collection of rated games for user",
-                      username,
-                      "could not be found."))
-        
-        return(list())
-    }
+      response <- GET(request)
+      
+      # if we get a 200 we're good
+      if (response$status_code == 200) break
+      
+      # protecting against some other thing going wrong
+      if (response$status_code != 202) {
+          
+          # in this case, throw a warning to the console...
+          warning(paste("The collection of rated games for user",
+                        username,
+                        "could not be found."))
+          
+          return(list())
+      }
     
     # wait before re-requesting to minimize the number of times this loop will run
     Sys.sleep(sleeptime__) 
   }
+  
+  collection <- content(response$content)
+  
+  # sometimes the response might actually be an error,
+  if (length(xml_find_all(collection, "//error")) > 0) {
       
-    # sometimes the message warning might actually be an error,
-    if (length(xml_find_all(collection, "//error")) > 0) {
-        
-        # in this case, throw a warning to the console...
-        warning(paste("The collection of rated games for user",
-                      username,
-                      "could not be found."))
-        
-        # .. and return an empty vector
-        return(list())
-    }
+      # in this case, throw a warning to the console...
+      warning(paste("The collection of rated games for user",
+                    username,
+                    "could not be found."))
+      
+      # .. and return an empty vector
+      return(list())
+  }
   
   return(xml_find_all(collection, "//item"))
                     
