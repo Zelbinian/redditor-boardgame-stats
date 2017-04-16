@@ -16,6 +16,8 @@ require("xml2")
 require("httr")
 require("magrittr")
 
+sleeptime__ <- 4 # global setting for how long to sleep between API calls
+
 ####################################################################################
 # FUNCTION REPOSITORY
 # Because scripts run top to bottom, functions need to be defined first before the 
@@ -53,7 +55,7 @@ retrieveAllUserNames <- function(req_url) {
                        xml_attr(members, "name"))
     
     # to prevent from throttling the server
-    Sys.sleep(5)
+    Sys.sleep(sleeptime__)
   }
   
   # if the while loop has ended, we have all of our usernames
@@ -95,19 +97,19 @@ getRatedGames <- function(username) {
     }
     
     # wait before re-requesting to minimize the number of times this loop will run
-    Sys.sleep(10) 
+    Sys.sleep(sleeptime__) 
   }
   
   return(xml_find_all(collection, "//item"))
                     
 }
 
-addUsersGames <- function(game_nodes, games_list) {
-    if ( length(game_nodes) == 0 ) return()
+addUsersGames <- function(games, games_list) {
+    if ( length(games) == 0 ) return()
     
-    id <- xml_text(xml_find_all(game_nodes, "@objectid"))
-    name <- xml_text(xml_find_all(game_nodes, "//name"))
-    member_rating <- xml_text(xml_find_all(game_nodes, "//rating/@value"))
+    id <- xml_text(xml_find_all(games, "@objectid"))
+    name <- xml_text(xml_find_all(games, "//name"))
+    member_rating <- xml_text(xml_find_all(games, "//rating/@value"))
     
     new_games_list <- data.frame(ID = id, Name = name, MemberRating = member_rating,
                                  stringsAsFactors = FALSE)
@@ -132,11 +134,21 @@ guild_data_url <- "https://www.boardgamegeek.com/xmlapi2/guild?id=432&members=1"
 guild_usernames <- retrieveAllUserNames(guild_data_url)
 
 ####################################################################################
-# STEP 2: Get each member's collection and, for each game they have rated, put the 
-# full details of that game in a data.frame
+# STEP 2: Get each member's collection of rated games
 ####################################################################################
 
-games_list <- data.frame(ID = integer(0), Name = character(0), 
+guild_games_list <- data.frame(ID = integer(0), Name = character(0), 
                          MemberRating = numeric(0), stringsAsFactors = FALSE)
 
+# apply or any of the other usual tricks for looping in R won't work because guild_usernames
+# is just a simple vector, so to grab the list of rated games (and their ratings) for
+# each guild member we have to do it the old fashioned way.
 
+for (i in 1:length(guild_usernames)) {
+    
+    users_rated_games <- getRatedGames(guild_usernames[i])
+    
+    guild_games_list <- addUsersGames(users_rated_games, guild_games_list)
+    
+    Sys.sleep(sleeptime__)
+}
