@@ -131,7 +131,19 @@ addUsersGames <- function(games, games_list) {
     
 }
 
-
+getGuildsRatedGames <- function(guild_usernames, games_list) {
+    
+    for (i in 1:length(guild_usernames)) {
+        
+        users_rated_games <- getRatedGames(guild_usernames[i])
+        
+        games_list <- addUsersGames(users_rated_games, games_list)
+        
+        Sys.sleep(sleeptime__)
+    }
+    
+    return(games_list)
+}
 
 ####################################################################################
 # STEP 1: Get the usernames of each member in the Redditors guild on BGG
@@ -157,11 +169,4 @@ guild_games_list <- data.frame(ID = integer(0), Name = character(0),
 # is just a simple vector, so to grab the list of rated games (and their ratings) for
 # each guild member we have to do it the old fashioned way.
 
-for (i in 1:length(guild_usernames)) {
-    
-    users_rated_games <- getRatedGames(guild_usernames[i])
-    
-    guild_games_list <- addUsersGames(users_rated_games, guild_games_list)
-    
-    Sys.sleep(sleeptime__)
-}
+guild_games_list <- getGuildsRatedGames(guild_usernames, guild_games_list)
