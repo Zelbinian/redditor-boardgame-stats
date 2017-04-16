@@ -160,13 +160,13 @@ guild_data_url <- "https://www.boardgamegeek.com/xmlapi2/guild?id=1727&members=1
 guild_usernames <- retrieveAllUserNames(guild_data_url)
 
 ####################################################################################
-# STEP 2: Get each member's collection of rated games
+# STEP 2: Get each member's collection of rated games (and the ratings for them, too)
 ####################################################################################
 
-guild_games_list <- data.frame(ID = integer(0), MemberRating = numeric(0))
+game_ratings <- data.frame(ID = integer(0), MemberRating = numeric(0))
 
 # apply or any of the other usual tricks for looping in R won't work because guild_usernames
 # is just a simple vector, so to grab the list of rated games (and their ratings) for
 # each guild member we have to do it the old fashioned way.
 
-guild_games_list <- getGuildsRatedGames(guild_usernames, guild_games_list)
+game_ratings <- getGuildsRatedGames(guild_usernames, game_ratings)
