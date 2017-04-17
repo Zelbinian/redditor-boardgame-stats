@@ -24,12 +24,20 @@ sleeptime__ <- 4 # global setting for how long to sleep between API calls
 # script runs.
 ####################################################################################
 
+# This does the real work to retrieve the usernames from the guild information.
+# It's wrapped with retrieveAllUserNames because the data is paginated, so getMemberNodes
+# extracts the data from a single page while retrieveAllUserNames feeds it a page at a
+# time.
+
 getMemberNodes <- function(req_url, page) {
-  
-  cur_req_url <- paste0(req_url, "&page=", page)
-  inner_xml <- read_xml(cur_req_url)
-  return(xml_find_all(inner_xml, "//member"))
-  
+    
+    # these two lines get the xml
+    cur_req_url <- paste0(req_url, "&page=", page)
+    inner_xml <- read_xml(cur_req_url)
+    
+    # and this returns the member nodes inside
+    return(xml_find_all(inner_xml, "//member"))
+    
 }
 
 retrieveAllUserNames <- function(req_url) {
@@ -118,28 +126,39 @@ getRatedGames <- function(username) {
 }
 
 addUsersGames <- function(games, games_list) {
+    
+    # no need to process an empty list! will probably never happen, but just in case
     if ( length(games) == 0 ) return(games_list)
     
+    # the "games" object is xml, so here we're extracting the values we need
     id <- as.integer(xml_text(xml_find_all(games, "@objectid")))
     member_rating <- as.numeric(xml_text(xml_find_all(games, "//rating/@value")))
     
+    # then we stitch these vectors together into a data.frame..
     new_games_list <- data.frame(ID = id, MemberRating = member_rating)
     
+    # and return a concatenation of both lists
     return (rbind(games_list, new_games_list))
     
 }
 
 getGuildsRatedGames <- function(guild_usernames, games_list) {
     
+    # we want to get the game ratings for each user in the guild
     for (i in 1:length(guild_usernames)) {
         
+        # call a helper function to actually get the games for this user
         users_rated_games <- getRatedGames(guild_usernames[i])
         
+        # sometimes a user hasn't actually rated anything, so checking for that.
         if ( length(users_rated_games) > 0 ) {
             
+            # if they have, addUsersGames concatenates the new list of ratings
+            # with the old
             games_list <- addUsersGames(users_rated_games, games_list)
         }
         
+        # sleeping in order not to peg the server
         Sys.sleep(sleeptime__)
     }
     
@@ -184,3 +203,20 @@ avg_game_ratings <- aggregate(MemberRating ~ ID, data = game_ratings,
                               FUN = function(ratings) {
                                     return(round(mean(ratings)),3)
                                   })
+
+####################################################################################
+# STEP 4: Gather additional details about each game by id and add the columns
+####################################################################################
+
+# The additional needed:
+#     - Name
+#     - BGG Rating
+#     - Min Playtime
+#     - Max Playtime
+#     - Game Weight
+#     - Min Recommended Age
+#     - Min Players
+#     - Max Players
+#     - Year Released
+#     - BGG Rank
+
