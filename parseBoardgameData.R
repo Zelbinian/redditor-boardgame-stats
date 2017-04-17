@@ -165,6 +165,47 @@ getGuildsRatedGames <- function(guild_usernames, games_list) {
     return(games_list)
 }
 
+buildFinalGamesList <- function(games, game_ids, member_ratings) {
+    
+    # We have an xml bucket of a bunch of games so all we have to do is extract
+    # the bits of information we care about ...
+    
+    names <- xml_text(xml_find_all(games, "//name[@type='primary']/@value"))
+    years <- as.integer(xml_text(xml_find_all(games, "//yearpublished/@value")))
+    min_players <- as.integer(xml_text(xml_find_all(games, "//minplayers/@value")))
+    max_players <- as.integer(xml_text(xml_find_all(games, "//maxplayers/@value")))
+    min_times <- as.integer(xml_text(xml_find_all(games, "//minplaytime/@value")))
+    max_times <- as.integer(xml_text(xml_find_all(games, "//maxplaytime/@value")))
+    min_ages <- as.integer(xml_text(xml_find_all(games, "//minage/@value")))
+    bgg_ratings <- as.numeric(xml_text(xml_find_all(games, "//ratings/average/@value")))
+    bgg_ranks <- as.numeric(xml_text(xml_find_all(games, "//rank[@name='boardgame']/@value")))
+    weights <- as.numeric(xml_text(xml_find_all(games, "//averageweight/@value")))
+    copies_owned <- as.integer(xml_text(xml_find_all(games, "//owned/@value")))
+    
+    # ... and stitch it up with what we already know
+    
+    return(
+        data.frame(
+            ID = game_ids,
+            Name = names,
+            Year = years,
+            MemberRating = member_ratings,
+            BGGRating = bgg_ratings,
+            BGGRank = bgg_ranks,
+            Weight = weights,
+            MinPlayers = min_players,
+            MaxPlayers = max_players,
+            MinTime = min_times,
+            MaxTime = max_times,
+            MinAge = min_ages,
+            CopiesOwned = copies_owned,
+            stringsAsFactors = FALSE
+        )
+        
+    )
+    
+}
+
 ####################################################################################
 # STEP 1: Get the usernames of each member in the Redditors guild on BGG
 ####################################################################################
@@ -219,4 +260,5 @@ avg_game_ratings <- aggregate(MemberRating ~ ID, data = game_ratings,
 #     - Max Players
 #     - Year Released
 #     - BGG Rank
+#     - Copies Owned
 
