@@ -170,3 +170,17 @@ game_ratings <- data.frame(ID = integer(0), MemberRating = numeric(0))
 # each guild member we have to do it the old fashioned way.
 
 game_ratings <- getGuildsRatedGames(guild_usernames, game_ratings)
+
+####################################################################################
+# STEP 3: Aggregate the ratings
+####################################################################################
+
+# Not as complex as it looks. What this says is: "Aggregate the MemberRatings across
+# unique IDs, and do so with this anonymous function. The anonymous function takes
+# the mean of the ratings, rounds that mean to 3 significant digits, then returns the
+# value.
+
+avg_game_ratings <- aggregate(MemberRating ~ ID, data = game_ratings, 
+                              FUN = function(ratings) {
+                                    return(round(mean(ratings)),3)
+                                  })
