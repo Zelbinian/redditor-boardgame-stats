@@ -166,25 +166,40 @@ getGuildsRatedGames <- function(guild_usernames, games_list) {
 }
 
 assembleGameDataFile <- function(game_ids) {
-    num_games <- length(game_ids)
-    start_id <- 1
-    end_id <- 400
-    slice_size <- 400
-    game_data <- xml_new_root("items")
     
-    while (start_id < num_games) {
+    # some helper variables for the while loop
+    num_games <- length(game_ids)       # quick access to length of the list
+    start_id <- 1                       # <
+    end_id <- 400                       # 400 games / query
+    slice_size <- 400                   # <
+    game_data <- xml_new_root("items")  # empty xml document to put returned games in
+    
+    # The while loop is cuz that's about the limit of the data the API can return at
+    # one time without falling over, so we have to batch it.
+    
+    while (end_id < num_games) {
         
+        # get a comma-delimited list of games for this batch
         ids <- paste0(id_list[start_id:end_id], collapse = ",")
         
-        games_batch <- read_xml(paste0("https://www.boardgamegeek.com/xmlapi2/thing?",
+        # build the api query for this batch and store the results
+        games_batch <- read_xml(paste0("https://www.boardgamegeek.com/xmlapi2/thing?id=",
                                        ids,
                                        "&stats=1"))
         
+        # each child is a game item, so iteratively place each one in the xml doc
         for (child in xml_children(games_batch)) xml_add_child(game_data, child)
         
+        # move the chains for the next batch
         start_id <- start_id + slice_size
         end_id <- end_id + slice_size
+        if (end_id > num_games) end_id <- num_games # preventing reading past the end
+        
+        # being nice to the poor servers by throttling the requests
+        Sys.sleep(sleeptime__)
     }
+    
+    return(game_data)
 }
 
 buildFinalGamesList <- function(games, game_ids, member_ratings) {
