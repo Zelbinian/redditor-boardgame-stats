@@ -179,7 +179,7 @@ assembleGameDataFile <- function(game_ids) {
     # The while loop is cuz 400 is about the limit of game data the API can return at
     # one time without falling over, so we have to batch it.
     
-    while (end_id <= num_games) {
+    while (start_id <= num_games) {
         
         # get a comma-delimited list of games for this batch
         ids <- paste0(game_ids[start_id:end_id], collapse = ",")
@@ -300,7 +300,7 @@ avg_game_ratings <- aggregate(MemberRating ~ ID, data = game_ratings,
 #     - Copies Owned
 
 # first, look up the game data using the ids we've gathered
-# game_list_xml <- assembleGameDataFile(avg_game_ratings$ID)
+game_list_xml <- assembleGameDataFile(avg_game_ratings$ID)
 
 # then parse that data to build the final games list with all the things!
 # game_list_df <- buildFinalGamesList(game_list_xml, 
