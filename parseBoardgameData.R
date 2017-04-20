@@ -303,6 +303,6 @@ avg_game_ratings <- aggregate(MemberRating ~ ID, data = game_ratings,
 game_list_xml <- assembleGameDataFile(avg_game_ratings$ID)
 
 # then parse that data to build the final games list with all the things!
-# game_list_df <- buildFinalGamesList(game_list_xml, 
-#                                    avg_game_ratings$ID, 
-#                                    avg_game_ratings$MemberRating)
+game_list_df <- buildFinalGamesList(game_list_xml, 
+                                   avg_game_ratings$ID, 
+                                   avg_game_ratings$MemberRating)
