@@ -165,7 +165,29 @@ getGuildsRatedGames <- function(guild_usernames, games_list) {
     return(games_list)
 }
 
-buildFinalGamesList <- function(games, game_ids, member_ratings) {
+assembleGameDataFile <- function(game_ids) {
+    num_games <- length(game_ids)
+    start_id <- 1
+    end_id <- 400
+    slice_size <- 400
+    game_data <- xml_new_root("items")
+    
+    while (start_id < num_games) {
+        
+        ids <- paste0(id_list[start_id:end_id], collapse = ",")
+        
+        games_batch <- read_xml(paste0("https://www.boardgamegeek.com/xmlapi2/thing?",
+                                       ids,
+                                       "&stats=1"))
+        
+        for (child in xml_children(games_batch)) xml_add_child(game_data, child)
+        
+        start_id <- start_id + slice_size
+        end_id <- end_id + slice_size
+    }
+}
+
+buildFinalGamesList <- function(games, member_ratings) {
     
     # We have an xml bucket of a bunch of games so all we have to do is extract
     # the bits of information we care about ...
@@ -186,7 +208,7 @@ buildFinalGamesList <- function(games, game_ids, member_ratings) {
     
     return(
         data.frame(
-            ID = game_ids,
+            ID = member_ratings$ID,
             Name = names,
             Year = years,
             MemberRating = member_ratings,
@@ -265,8 +287,6 @@ avg_game_ratings <- aggregate(MemberRating ~ ID, data = game_ratings,
 # first, get the game_ids from the list we've put together so we can use them to look
 # up game data
 
-game_ids <- paste0(avg_game_ratings$ID, collapse = ",")
-num_games <- length(avg_game_ratings$ID)
+game_list_xml <- assembleGameDataFile(avg_game_ratings$ID)
 
-repeat {
-}
+game_list_df <- buildFinalGamesList(game_list_xml, avg_game_ratings)
