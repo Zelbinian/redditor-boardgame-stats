@@ -323,31 +323,29 @@ game_list_df$Year[game_list_df$Year == 0] <- NA
 # Some times max playtimes are not listed so they get reported as "0". A reasonable guess
 # in these circumstances is to have the max playtime equal the min playtime.
 # First step is to create a logical vector to tell us the offending rows.
-lowerMax <- game_list_df$MaxTime < game_list_df$MinTime 
+lower_max_time <- game_list_df$MaxTime < game_list_df$MinTime 
 
 # Then, if there are rows for which this is true, update them
-if (sum(lowerMax) > 0) { # this means there are some rows where this condition holds
+if (sum(lower_max_time) > 0) { # this means there are some rows where this condition holds
     
     # TODO: write this out to a file so you can submit corrections to BGG
     
-    game_list_df[lowerMax,]$MaxTime <- game_list_df[lowerMax,]$MinTime
+    game_list_df[lower_max_time,]$MaxTime <- game_list_df[lower_max_time,]$MinTime
 
 }
 
 # We'll do a similar thing with player counts
 # Although the missing data replacement will be a bit more sophisticated in this case
 # We start the same way, by obtaining a logical vector telling us the offending rows
-lowerPCount <- game_list_df$MaxPlayers < game_list_df$MinPlayers
+lower_max_pcount <- game_list_df$MaxPlayers < game_list_df$MinPlayers
 
-if (sum(lowerPCount) > 0) {
+if (sum(lower_max_pcount) > 0) {
     
     # TODO: write this out to a file so you can submit corrections to BGG
     
-    # Here's what we're doing: for each entry, use it's min player count to find the avg
+    # Here's what we're doing: for each entry, use it's min player count to find the median
     # MAX player count for that min player count and then update the max player count.
-    # An example: Let's say game is 3 players min. Let's also say the average MAX player
+    # An example: Let's say game is 3 players min. Let's also say the median MAX player
     # count for 3 player games in our dataset is 5. That's what we'd set the max to for
     # the individual game. Crude, but effective.
-    
-    
 }
