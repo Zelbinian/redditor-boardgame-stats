@@ -318,3 +318,11 @@ rm(avg_game_ratings, game_ratings, guild_usernames, sleeptime__)
 
 # Some times max playtimes are not listed so they get reported as "0". A reasonable guess
 # in these circumstances is to have the max playtime equal the min playtime.
+# First step is to create a logical vector to subset the df.
+lowerMax <- game_list_df$MaxTime < game_list_df$MinTime 
+
+# Then, if there are rows for which this is true, update them
+if (sum(lowerMax > 0 )) { # this means there are some rows where this condition holds
+    
+
+}
