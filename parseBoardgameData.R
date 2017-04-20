@@ -176,13 +176,13 @@ assembleGameDataFile <- function(game_ids) {
     slice_size <- 400                   # <
     game_data <- xml_new_root("items")  # empty xml document to put returned games in
     
-    # The while loop is cuz that's about the limit of the data the API can return at
+    # The while loop is cuz 400 is about the limit of game data the API can return at
     # one time without falling over, so we have to batch it.
     
-    while (end_id < num_games) {
+    while (end_id <= num_games) {
         
         # get a comma-delimited list of games for this batch
-        ids <- paste0(id_list[start_id:end_id], collapse = ",")
+        ids <- paste0(game_ids[start_id:end_id], collapse = ",")
         
         # build the api query for this batch and store the results
         games_batch <- read_xml(paste0("https://www.boardgamegeek.com/xmlapi2/thing?id=",
@@ -300,9 +300,9 @@ avg_game_ratings <- aggregate(MemberRating ~ ID, data = game_ratings,
 #     - Copies Owned
 
 # first, look up the game data using the ids we've gathered
-game_list_xml <- assembleGameDataFile(avg_game_ratings$ID)
+# game_list_xml <- assembleGameDataFile(avg_game_ratings$ID)
 
 # then parse that data to build the final games list with all the things!
-game_list_df <- buildFinalGamesList(game_list_xml, 
-                                    avg_game_ratings$ID, 
-                                    avg_game_ratings$MemberRating)
+# game_list_df <- buildFinalGamesList(game_list_xml, 
+#                                    avg_game_ratings$ID, 
+#                                    avg_game_ratings$MemberRating)
