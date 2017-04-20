@@ -310,7 +310,7 @@ game_list_df <- assembleGameDataFile(avg_game_ratings$ID) %>%
 ####################################################################################
 # STEP 5: Clean up unneeded variables.
 ####################################################################################
-
+rm(avg_game_ratings, game_ratings, guild_usernames, sleeptime__)
 
 ####################################################################################
 # STEP 6: Look for inconsistencies in the data and cleaning them up
