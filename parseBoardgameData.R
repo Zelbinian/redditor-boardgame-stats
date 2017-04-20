@@ -4,6 +4,7 @@
 # - compute the average rating for each game for each member
 # - get all the extra details of each game you can
 # - create a data.frame that holds all this data
+# - clean data
 # - be able to filter this data.frame based on criteria
 
 ####################################################################################
@@ -300,9 +301,20 @@ avg_game_ratings <- aggregate(MemberRating ~ ID, data = game_ratings,
 #     - Copies Owned
 
 # first, look up the game data using the ids we've gathered
-game_list_xml <- assembleGameDataFile(avg_game_ratings$ID)
-
 # then parse that data to build the final games list with all the things!
-game_list_df <- buildFinalGamesList(game_list_xml, 
-                                   avg_game_ratings$ID, 
-                                   avg_game_ratings$MemberRating)
+game_list_df <- assembleGameDataFile(avg_game_ratings$ID) %>% 
+    buildFinalGamesList(., 
+                        avg_game_ratings$ID, 
+                        avg_game_ratings$MemberRating)
+
+####################################################################################
+# STEP 5: Clean up unneeded variables.
+####################################################################################
+
+
+####################################################################################
+# STEP 6: Look for inconsistencies in the data and cleaning them up
+####################################################################################
+
+# Some times max playtimes are not listed so they get reported as "0". A reasonable guess
+# in these circumstances is to have the max playtime equal the min playtime.
