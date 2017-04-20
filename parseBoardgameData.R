@@ -142,7 +142,9 @@ addUsersGames <- function(games, games_list) {
     
 }
 
-getGuildsRatedGames <- function(guild_usernames, games_list) {
+getGuildsRatedGames <- function(guild_usernames) {
+    
+    games_list <- data.frame(ID = integer(0), MemberRating = numeric(0))
     
     # we want to get the game ratings for each user in the guild
     for (i in 1:length(guild_usernames)) {
@@ -260,13 +262,11 @@ guild_usernames <- retrieveAllUserNames(guild_data_url)
 # STEP 2: Get each member's collection of rated games (and the ratings for them, too)
 ####################################################################################
 
-game_ratings <- data.frame(ID = integer(0), MemberRating = numeric(0))
-
 # apply or any of the other usual tricks for looping in R won't work because guild_usernames
 # is just a simple vector, so to grab the list of rated games (and their ratings) for
 # each guild member we have to do it the old fashioned way.
 
-game_ratings <- getGuildsRatedGames(guild_usernames, game_ratings)
+game_ratings <- getGuildsRatedGames(guild_usernames)
 
 ####################################################################################
 # STEP 3: Aggregate the ratings
