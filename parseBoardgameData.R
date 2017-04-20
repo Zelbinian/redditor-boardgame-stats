@@ -187,7 +187,7 @@ assembleGameDataFile <- function(game_ids) {
     }
 }
 
-buildFinalGamesList <- function(games, member_ratings) {
+buildFinalGamesList <- function(games, game_ids, member_ratings) {
     
     # We have an xml bucket of a bunch of games so all we have to do is extract
     # the bits of information we care about ...
@@ -208,7 +208,7 @@ buildFinalGamesList <- function(games, member_ratings) {
     
     return(
         data.frame(
-            ID = member_ratings$ID,
+            ID = game_ids,
             Name = names,
             Year = years,
             MemberRating = member_ratings,
@@ -284,9 +284,10 @@ avg_game_ratings <- aggregate(MemberRating ~ ID, data = game_ratings,
 #     - BGG Rank
 #     - Copies Owned
 
-# first, get the game_ids from the list we've put together so we can use them to look
-# up game data
-
+# first, look up the game data using the ids we've gathered
 game_list_xml <- assembleGameDataFile(avg_game_ratings$ID)
 
-game_list_df <- buildFinalGamesList(game_list_xml, avg_game_ratings)
+# then parse that data to build the final games list with all the things!
+game_list_df <- buildFinalGamesList(game_list_xml, 
+                                    avg_game_ratings$ID, 
+                                    avg_game_ratings$MemberRating)
