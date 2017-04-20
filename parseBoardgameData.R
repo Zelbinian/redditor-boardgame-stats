@@ -241,15 +241,15 @@ game_ratings <- getGuildsRatedGames(guild_usernames, game_ratings)
 # value.
 
 avg_game_ratings <- aggregate(MemberRating ~ ID, data = game_ratings, 
-                              FUN = function(ratings) {
-                                    return(round(mean(ratings)),3)
-                                  })
+                             FUN = function(ratings) {
+                                   return(round(mean(ratings),3))
+                                 })
 
 ####################################################################################
-# STEP 4: Gather additional details about each game by id and add the columns
+# STEP 4: Gather additional details about each game by id and build the final df
 ####################################################################################
 
-# The additional needed:
+# The additional needed data:
 #     - Name
 #     - BGG Rating
 #     - Min Playtime
@@ -262,3 +262,11 @@ avg_game_ratings <- aggregate(MemberRating ~ ID, data = game_ratings,
 #     - BGG Rank
 #     - Copies Owned
 
+# first, get the game_ids from the list we've put together so we can use them to look
+# up game data
+
+game_ids <- paste0(avg_game_ratings$ID, collapse = ",")
+num_games <- length(avg_game_ratings$ID)
+
+repeat {
+}
