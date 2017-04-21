@@ -351,5 +351,13 @@ if (sum(lower_max_pcount) > 0) {
     # count for 3 player games in our dataset is 5. That's what we'd set the max to for
     # the individual game. Crude, but effective.
     
+    for (i in which(lower_max_pcount)) {
+        min_play_count <- gld_copy[i,]$MinPlayers
+        gld_copy[i,]$MaxPlayers <- median(gld_copy[gld_copy$MinPlayers == min_play_count,]$MaxPlayers)
+    }
     
 }
+
+# not going to do anything with MinAge except note ones to fix on BGG
+
+
