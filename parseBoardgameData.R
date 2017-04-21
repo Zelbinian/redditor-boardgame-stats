@@ -343,7 +343,7 @@ lower_max_pcount <- game_list_df$MaxPlayers < game_list_df$MinPlayers
 if (sum(lower_max_pcount) > 0) {
     
     # write this out to a file so we can submit corrections to BGG
-    write.table(game_list_df[lower_max_time,],"badplayercounts.txt")
+    write.table(game_list_df[lower_max_pcount,],"badplayercounts.txt")
     
     # Here's what we're doing: for each entry, use it's min player count to find the median
     # MAX player count for that min player count and then update the max player count.
@@ -353,12 +353,12 @@ if (sum(lower_max_pcount) > 0) {
     
     for (i in which(lower_max_pcount)) {
         min_play_count <- game_list_df[i,]$MinPlayers
-        games_list_df[i,]$MaxPlayers <- median(
-            games_list_df[games_list_df$MinPlayers == min_play_count,]$MaxPlayers)
+        game_list_df[i,]$MaxPlayers <- median(
+            game_list_df[game_list_df$MinPlayers == min_play_count,]$MaxPlayers)
     }
     
 }
 
 # not going to do anything with MinAge except note ones to fix on BGG
-write.table(game_list_df[lower_max_time,],"badminage.txt")
+write.table(game_list_df[game_list_df$MinAge == 0,],"badminage.txt")
 
