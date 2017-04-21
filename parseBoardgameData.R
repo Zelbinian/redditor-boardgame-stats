@@ -352,12 +352,13 @@ if (sum(lower_max_pcount) > 0) {
     # the individual game. Crude, but effective.
     
     for (i in which(lower_max_pcount)) {
-        min_play_count <- gld_copy[i,]$MinPlayers
-        gld_copy[i,]$MaxPlayers <- median(gld_copy[gld_copy$MinPlayers == min_play_count,]$MaxPlayers)
+        min_play_count <- game_list_df[i,]$MinPlayers
+        games_list_df[i,]$MaxPlayers <- median(
+            games_list_df[games_list_df$MinPlayers == min_play_count,]$MaxPlayers)
     }
     
 }
 
 # not going to do anything with MinAge except note ones to fix on BGG
-
+write.table(game_list_df[lower_max_time,],"badminage.txt")
 
