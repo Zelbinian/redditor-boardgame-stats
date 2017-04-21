@@ -359,6 +359,4 @@ if (sum(lower_max_pcount) > 0) {
     
 }
 
-# not going to do anything with MinAge except note ones to fix on BGG
-write.table(game_list_df[game_list_df$MinAge == 0,],"badminage.txt")
 
