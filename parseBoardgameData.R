@@ -319,6 +319,7 @@ rm(avg_game_ratings, game_ratings, guild_usernames, sleeptime__)
 # inserting true NAs
 game_list_df[game_list_df == "NA"] <- NA
 game_list_df$Year[game_list_df$Year == 0] <- NA
+game_list_df$MinAge[game_list_df$MinAge == 0] <- NA
 
 # Some times max playtimes are not listed so they get reported as "0". A reasonable guess
 # in these circumstances is to have the max playtime equal the min playtime.
