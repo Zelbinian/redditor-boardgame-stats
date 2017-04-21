@@ -328,7 +328,8 @@ lower_max_time <- game_list_df$MaxTime < game_list_df$MinTime
 # Then, if there are rows for which this is true, update them
 if (sum(lower_max_time) > 0) { # this means there are some rows where this condition holds
     
-    # TODO: write this out to a file so you can submit corrections to BGG
+    # write this info to a file so we can submit corrections to BGG
+    write.table(game_list_df[lower_max_time,],"badplaytimes.txt")
     
     game_list_df[lower_max_time,]$MaxTime <- game_list_df[lower_max_time,]$MinTime
 
@@ -341,11 +342,14 @@ lower_max_pcount <- game_list_df$MaxPlayers < game_list_df$MinPlayers
 
 if (sum(lower_max_pcount) > 0) {
     
-    # TODO: write this out to a file so you can submit corrections to BGG
+    # write this out to a file so we can submit corrections to BGG
+    write.table(game_list_df[lower_max_time,],"badplayercounts.txt")
     
     # Here's what we're doing: for each entry, use it's min player count to find the median
     # MAX player count for that min player count and then update the max player count.
     # An example: Let's say game is 3 players min. Let's also say the median MAX player
     # count for 3 player games in our dataset is 5. That's what we'd set the max to for
     # the individual game. Crude, but effective.
+    
+    
 }
