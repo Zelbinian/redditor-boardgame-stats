@@ -168,6 +168,13 @@ getGuildsRatedGames <- function(guild_usernames) {
     return(games_list)
 }
 
+pruneRatings <- function(threshold = 5, ratings) {
+    table_ratings <- table(ratings)
+    to_keep <- table_ratings[rowSums(table_ratings) >= threshold,]
+    
+    return(ratings[ratings$ID %in% rownames(to_keep),])
+}
+
 assembleGameDataFile <- function(game_ids) {
     
     # some helper variables for the while loop
@@ -268,6 +275,8 @@ guild_usernames <- retrieveAllUserNames(guild_data_url)
 # each guild member we have to do it the old fashioned way.
 
 game_ratings <- getGuildsRatedGames(guild_usernames)
+
+game_ratings <- pruneRatings(3, game_ratings)
 
 ####################################################################################
 # STEP 3: Aggregate the ratings
