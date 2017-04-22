@@ -276,6 +276,8 @@ guild_usernames <- retrieveAllUserNames(guild_data_url)
 
 game_ratings <- getGuildsRatedGames(guild_usernames)
 
+# games that have only been rated by a few people skew the data, so pruning
+# default threshold is 5
 game_ratings <- pruneRatings(3, game_ratings)
 
 ####################################################################################
