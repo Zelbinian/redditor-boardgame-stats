@@ -189,6 +189,8 @@ assembleGameDataFile <- function(game_ids) {
     
     while (start_id <= num_games) {
         
+        if (end_id > num_games) end_id <- num_games # preventing reading past the end
+        
         # get a comma-delimited list of games for this batch
         ids <- paste0(game_ids[start_id:end_id], collapse = ",")
         
@@ -203,7 +205,6 @@ assembleGameDataFile <- function(game_ids) {
         # move the chains for the next batch
         start_id <- start_id + slice_size
         end_id <- end_id + slice_size
-        if (end_id > num_games) end_id <- num_games # preventing reading past the end
         
         # being nice to the poor servers by throttling the requests
         Sys.sleep(sleeptime__)
