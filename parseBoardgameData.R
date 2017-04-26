@@ -175,14 +175,24 @@ pruneRatings <- function(threshold = 5, ratings) {
     return(ratings[ratings$ID %in% rownames(to_keep),])
 }
 
-assembleGameDataFile <- function(game_ids) {
+assembleGameDataFile <- function(game_ratings) {
     
     # some helper variables for the while loop
-    num_games <- length(game_ids)       # quick access to length of the list
+    num_games <- length(game_ratings$ID)       # quick access to length of the list
     start_id <- 1                       # <
     end_id <- 400                       # 400 games / query
     slice_size <- 400                   # <
-    game_data <- xml_new_root("items")  # empty xml document to put returned games in
+    game_data <- data.frame(Name = character(0), # master data.frame, empty to start
+                            Year = integer(0),
+                            BGGRating = numeric(0),
+                            BGGRank = integer(0),
+                            Weight = numeric(0),
+                            MinPlayers = integer(0),
+                            MaxPlayers = integer(0),
+                            MinTime = integer(0),
+                            MaxTime = integer(0),
+                            MinAge = integer(0),
+                            CopiesOwned = integer(0))  
     
     # The while loop is cuz 400 is about the limit of game data the API can return at
     # one time without falling over, so we have to batch it.
@@ -192,15 +202,40 @@ assembleGameDataFile <- function(game_ids) {
         if (end_id > num_games) end_id <- num_games # preventing reading past the end
         
         # get a comma-delimited list of games for this batch
-        ids <- paste0(game_ids[start_id:end_id], collapse = ",")
+        ids <- paste0(game_ratings$ID[start_id:end_id], collapse = ",")
         
         # build the api query for this batch and store the results
         games_batch <- read_xml(paste0("https://www.boardgamegeek.com/xmlapi2/thing?id=",
                                        ids,
                                        "&stats=1"))
         
-        # each child is a game item, so iteratively place each one in the xml doc
-        for (child in xml_children(games_batch)) xml_add_child(game_data, child)
+        # run the xpath for each piece of data we want
+        names <- xml_text(xml_find_all(games_batch, "//name[@type='primary']/@value"))
+        years <- as.integer(xml_text(xml_find_all(games_batch, "//yearpublished/@value")))
+        bgg_ratings <- as.numeric(xml_text(xml_find_all(games_batch, "//ratings/average/@value")))
+        bgg_ranks <- as.numeric(xml_text(xml_find_all(games_batch, "//rank[@name='boardgame']/@value")))
+        weights <- as.numeric(xml_text(xml_find_all(games_batch, "//averageweight/@value")))
+        min_players <- as.integer(xml_text(xml_find_all(games_batch, "//minplayers/@value")))
+        max_players <- as.integer(xml_text(xml_find_all(games_batch, "//maxplayers/@value")))
+        min_times <- as.integer(xml_text(xml_find_all(games_batch, "//minplaytime/@value")))
+        max_times <- as.integer(xml_text(xml_find_all(games_batch, "//maxplaytime/@value")))
+        min_ages <- as.integer(xml_text(xml_find_all(games_batch, "//minage/@value")))
+        copies_owned <- as.integer(xml_text(xml_find_all(games_batch, "//owned/@value")))
+        
+        # create a new, temp data.frame that represents this batch and add the rows
+        # to the master data frame
+        game_data <- rbind(game_data,
+              data.frame(Name = names,
+                         Year = years,
+                         BGGRating = bgg_ratings,
+                         BGGRank = bgg_ranks,
+                         Weight = weights,
+                         MinPlayers = min_players,
+                         MaxPlayers = max_players,
+                         MinTime = min_times,
+                         MaxTime = max_times,
+                         MinAge = min_ages,
+                         CopiesOwned = copies_owned))
         
         # move the chains for the next batch
         start_id <- start_id + slice_size
@@ -210,48 +245,14 @@ assembleGameDataFile <- function(game_ids) {
         Sys.sleep(sleeptime__)
     }
     
-    return(game_data)
-}
-
-buildFinalGamesList <- function(games, game_ids, member_ratings) {
+    # add ID and MemberRating columns to the data.frame
+    game_data$ID <- game_ratings$ID
+    game_data$MemberRating <- game_ratings$MemberRating
     
-    # We have an xml bucket of a bunch of games so all we have to do is extract
-    # the bits of information we care about ...
+    # return the data.frame with columns in the expected order
     
-    names <- xml_text(xml_find_all(games, "//name[@type='primary']/@value"))
-    years <- as.integer(xml_text(xml_find_all(games, "//yearpublished/@value")))
-    min_players <- as.integer(xml_text(xml_find_all(games, "//minplayers/@value")))
-    max_players <- as.integer(xml_text(xml_find_all(games, "//maxplayers/@value")))
-    min_times <- as.integer(xml_text(xml_find_all(games, "//minplaytime/@value")))
-    max_times <- as.integer(xml_text(xml_find_all(games, "//maxplaytime/@value")))
-    min_ages <- as.integer(xml_text(xml_find_all(games, "//minage/@value")))
-    bgg_ratings <- as.numeric(xml_text(xml_find_all(games, "//ratings/average/@value")))
-    bgg_ranks <- as.numeric(xml_text(xml_find_all(games, "//rank[@name='boardgame']/@value")))
-    weights <- as.numeric(xml_text(xml_find_all(games, "//averageweight/@value")))
-    copies_owned <- as.integer(xml_text(xml_find_all(games, "//owned/@value")))
-    
-    # ... and stitch it up with what we already know
-    
-    return(
-        data.frame(
-            ID = game_ids,
-            Name = names,
-            Year = years,
-            MemberRating = member_ratings,
-            BGGRating = bgg_ratings,
-            BGGRank = bgg_ranks,
-            Weight = weights,
-            MinPlayers = min_players,
-            MaxPlayers = max_players,
-            MinTime = min_times,
-            MaxTime = max_times,
-            MinAge = min_ages,
-            CopiesOwned = copies_owned,
-            stringsAsFactors = FALSE
-        )
-        
-    )
-    
+    return(game_data[c("ID","Name","Year","MemberRating","BGGRating","BGGRank","Weight",
+                       "MinPlayers","MaxPlayers","MinTime","MaxTime","MinAge","CopiesOwned")])
 }
 
 ####################################################################################
@@ -263,8 +264,8 @@ buildFinalGamesList <- function(games, game_ids, member_ratings) {
 
 # real guild id = 1290
 
-guild_data_url <- "https://www.boardgamegeek.com/xmlapi2/guild?id=1727&members=1"
-
+guild_data_url <- "https://www.boardgamegeek.com/xmlapi2/guild?id=805&members=1"
+start_time <- Sys.time()
 guild_usernames <- retrieveAllUserNames(guild_data_url)
 
 ####################################################################################
@@ -290,7 +291,7 @@ game_ratings <- pruneRatings(3, game_ratings)
 # the mean of the ratings, rounds that mean to 3 significant digits, then returns the
 # value.
 
-avg_game_ratings <- aggregate(MemberRating ~ ID, data = game_ratings, 
+avg_game_ratings <- aggregate(MemberRating ~ ID, data = game_ratings,
                              FUN = function(ratings) {
                                    return(round(mean(ratings),3))
                                  })
@@ -312,13 +313,10 @@ avg_game_ratings <- aggregate(MemberRating ~ ID, data = game_ratings,
 #     - BGG Rank
 #     - Copies Owned
 
-# first, look up the game data using the ids we've gathered
+# look up the game data using the ids we've gathered
 # then parse that data to build the final games list with all the things!
-game_list_df <- assembleGameDataFile(avg_game_ratings$ID) %>% 
-    buildFinalGamesList(., 
-                        avg_game_ratings$ID, 
-                        avg_game_ratings$MemberRating)
-
+game_list_df <- assembleGameDataFile(avg_game_ratings)
+end_time <- Sys.time()
 ####################################################################################
 # STEP 5: Clean up unneeded variables.
 ####################################################################################
@@ -336,14 +334,14 @@ game_list_df$MinAge[game_list_df$MinAge == 0] <- NA
 # Some times max playtimes are not listed so they get reported as "0". A reasonable guess
 # in these circumstances is to have the max playtime equal the min playtime.
 # First step is to create a logical vector to tell us the offending rows.
-lower_max_time <- game_list_df$MaxTime < game_list_df$MinTime 
+lower_max_time <- game_list_df$MaxTime < game_list_df$MinTime
 
 # Then, if there are rows for which this is true, update them
 if (sum(lower_max_time) > 0) { # this means there are some rows where this condition holds
-    
+
     # write this info to a file so we can submit corrections to BGG
     write.table(game_list_df[lower_max_time,],"badplaytimes.txt")
-    
+
     game_list_df[lower_max_time,]$MaxTime <- game_list_df[lower_max_time,]$MinTime
 
 }
@@ -354,22 +352,22 @@ if (sum(lower_max_time) > 0) { # this means there are some rows where this condi
 lower_max_pcount <- game_list_df$MaxPlayers < game_list_df$MinPlayers
 
 if (sum(lower_max_pcount) > 0) {
-    
+
     # write this out to a file so we can submit corrections to BGG
     write.table(game_list_df[lower_max_pcount,],"badplayercounts.txt")
-    
+
     # Here's what we're doing: for each entry, use it's min player count to find the median
     # MAX player count for that min player count and then update the max player count.
     # An example: Let's say game is 3 players min. Let's also say the median MAX player
     # count for 3 player games in our dataset is 5. That's what we'd set the max to for
     # the individual game. Crude, but effective.
-    
+
     for (i in which(lower_max_pcount)) {
         min_play_count <- game_list_df[i,]$MinPlayers
         game_list_df[i,]$MaxPlayers <- median(
             game_list_df[game_list_df$MinPlayers == min_play_count,]$MaxPlayers)
     }
-    
+
 }
 
 
