@@ -180,7 +180,7 @@ assembleGameDataFile <- function(game_ratings) {
     # some helper variables for the while loop
     num_games <- length(game_ratings$ID)       # quick access to length of the list
     start_id <- 1                       # <
-    end_id <- slice_size <- 400         # 400 games / query
+    end_id <- slice_size <- 375         # size of batch / query
                       
     game_data <- data.frame(Name = character(0), # master data.frame, empty to start
                             Year = integer(0),
@@ -264,7 +264,7 @@ assembleGameDataFile <- function(game_ratings) {
 
 # real guild id = 1290
 
-guild_data_url <- "https://www.boardgamegeek.com/xmlapi2/guild?id=805&members=1"
+guild_data_url <- "https://www.boardgamegeek.com/xmlapi2/guild?id=513&members=1"
 start_time <- Sys.time()
 guild_usernames <- retrieveAllUserNames(guild_data_url)
 
@@ -280,7 +280,7 @@ game_ratings <- getGuildsRatedGames(guild_usernames)
 
 # games that have only been rated by a few people skew the data, so pruning
 # default threshold is 5
-game_ratings <- pruneRatings(3, game_ratings)
+game_ratings <- pruneRatings(game_ratings)
 
 ####################################################################################
 # STEP 3: Aggregate the ratings
