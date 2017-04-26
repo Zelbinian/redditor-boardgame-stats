@@ -180,8 +180,8 @@ assembleGameDataFile <- function(game_ratings) {
     # some helper variables for the while loop
     num_games <- length(game_ratings$ID)       # quick access to length of the list
     start_id <- 1                       # <
-    end_id <- 400                       # 400 games / query
-    slice_size <- 400                   # <
+    end_id <- slice_size <- 400         # 400 games / query
+                      
     game_data <- data.frame(Name = character(0), # master data.frame, empty to start
                             Year = integer(0),
                             BGGRating = numeric(0),
