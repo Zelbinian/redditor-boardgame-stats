@@ -34,15 +34,16 @@ queryBGG <- function(request) {
     repeat {
         
         if (try > 5) {
-            stop(paste0("BGG cannot currently execute the query:\n", request,
-                       "\nPlease check server status."))
+            paste0("BGG cannot currently execute the query:\n", request,
+                   "\nPlease check server status.") %>% stop()
         }
         
         response <- GET(request)
         
         if (response$status_code == 200) return(response$content)
         
-        warning(paste("BGG returned status", response$status_code, "for query:\n", request))
+        paste("BGG returned status", response$status_code, "for query:\n", request) %>% 
+            warning()
         
         Sys.sleep(sleeptime__ * try)
         
@@ -59,11 +60,14 @@ queryBGG <- function(request) {
 getMemberNodes <- function(req_url, page) {
     
     # these two lines get the xml
-    cur_req_url <- paste0(req_url, "&page=", page)
-    inner_xml <- read_xml(queryBGG(cur_req_url))
+    paste0(req_url, "&page=", page) %>% 
+        queryBGG()                  %>% 
+        read_xml()                  %>%
+        xml_find_all("//member")    %>%
+        return()
     
     # and this returns the member nodes inside
-    return(xml_find_all(inner_xml, "//member"))
+    # return(xml_find_all(inner_xml, "//member"))
     
 }
 
@@ -264,7 +268,7 @@ assembleGameDataFile <- function(game_ratings) {
 
 # real guild id = 1290
 
-guild_data_url <- "https://www.boardgamegeek.com/xmlapi2/guild?id=1727&members=1"
+guild_data_url <- "https://www.boardgamegeek.com/xmlapi2/guild?id=2737&members=1"
 start_time <- Sys.time()
 guild_usernames <- retrieveAllUserNames(guild_data_url)
 
