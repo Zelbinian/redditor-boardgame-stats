@@ -294,6 +294,10 @@ guild_usernames <- retrieveAllUserNames(guild_data_url)
 game_ratings <- guild_usernames %>% 
     getGuildsRatedGames()       %>%
     pruneRatings()
+    
+# Some memory optimization
+num_guild_members <- length(guild_usernames)
+rm(guild_usernames)
 
 ####################################################################################
 # STEP 3: Aggregate the ratings
@@ -308,6 +312,10 @@ avg_game_ratings <- game_ratings %>%
     aggregate(MemberRating ~ ID, 
               data = .,
               FUN = . %>% mean() %>% round(3) %>% return())
+
+# Some memory optimization
+paste("Total game ratings for group:",nrow(game_ratings)) %>% print()
+rm(game_ratings)
 
 ####################################################################################
 # STEP 4: Gather additional details about each game by id and build the final df
