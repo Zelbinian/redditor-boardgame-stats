@@ -167,7 +167,12 @@ getGuildsRatedGames <- function(guild_usernames) {
     return(games_list)
 }
 
-pruneRatings <- function(ratings, threshold = 5) {
+pruneRatings <- function(ratings, guild_size) {
+    
+    # threshold shall be 5 or 1% of guild_size, whichever is larger
+    one_percent <- guild_size * .01
+    threshold <- ifelse(one_percent > 5, one_percent, 5)
+    
     table_ratings <- table(ratings)
     to_keep <- table_ratings[rowSums(table_ratings) >= threshold,]
     
@@ -288,15 +293,15 @@ guild_usernames <- retrieveAllUserNames(guild_data_url)
 # is just a simple vector, so to grab the list of rated games (and their ratings) for
 # each guild member we have to do it the old fashioned way.
 # 
-# Games that have only been rated by a few people skew the data, so pruning
-# default threshold is 5
+# Games that have only been rated by a few people skew the data, so also pruning
+
+guild_size <- length(guild_usernames)
 
 game_ratings <- guild_usernames %>% 
     getGuildsRatedGames()       %>%
-    pruneRatings()
+    pruneRatings(guild_size)
     
 # Some memory optimization
-num_guild_members <- length(guild_usernames)
 rm(guild_usernames)
 
 ####################################################################################
