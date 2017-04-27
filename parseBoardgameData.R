@@ -40,7 +40,7 @@ queryBGG <- function(request) {
         
         response <- GET(request)
         
-        if (reponse$status_code == 200) return(response$content)
+        if (response$status_code == 200) return(response$content)
         
         warning(paste("BGG returned status", response$status_code, "for query:\n", request))
         
@@ -264,7 +264,7 @@ assembleGameDataFile <- function(game_ratings) {
 
 # real guild id = 1290
 
-guild_data_url <- "https://www.boardgamegeek.com/xmlapi2/guild?id=513&members=1"
+guild_data_url <- "https://www.boardgamegeek.com/xmlapi2/guild?id=1727&members=1"
 start_time <- Sys.time()
 guild_usernames <- retrieveAllUserNames(guild_data_url)
 
@@ -317,6 +317,7 @@ avg_game_ratings <- aggregate(MemberRating ~ ID, data = game_ratings,
 # then parse that data to build the final games list with all the things!
 game_list_df <- assembleGameDataFile(avg_game_ratings)
 end_time <- Sys.time()
+end_time - start_time
 ####################################################################################
 # STEP 5: Clean up unneeded variables.
 ####################################################################################
