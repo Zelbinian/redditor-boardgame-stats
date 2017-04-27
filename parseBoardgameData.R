@@ -59,15 +59,11 @@ queryBGG <- function(request) {
 
 getMemberNodes <- function(req_url, page) {
     
-    # these two lines get the xml
-    paste0(req_url, "&page=", page) %>% 
-        queryBGG()                  %>% 
-        read_xml()                  %>%
-        xml_find_all("//member")    %>%
-        return()
-    
-    # and this returns the member nodes inside
-    # return(xml_find_all(inner_xml, "//member"))
+    paste0(req_url, "&page=", page) %>% # build the request string for the API
+        queryBGG()                  %>% # make the request to get the XML
+        read_xml()                  %>% # read it in
+        xml_find_all("//member")    %>% # find all the member nodes
+        return()                        # return them
     
 }
 
