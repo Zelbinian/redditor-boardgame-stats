@@ -25,6 +25,32 @@ sleeptime__ <- 4 # global setting for how long to sleep between API calls
 # script runs.
 ####################################################################################
 
+# The BGG API/server is wonky enough that sometimes queries fail unexpectedly. This should
+# protect against that.
+
+queryBGG <- function(request) {
+    try <- 1
+    
+    repeat {
+        
+        if (try > 5) {
+            stop(paste0("BGG cannot currently execute the query:\n", request,
+                       "\nPlease check server status."))
+        }
+        
+        response <- GET(request)
+        
+        if (reponse$status_code == 200) return(response$content)
+        
+        warning(paste("BGG returned status", response$status_code, "for query:\n", request))
+        
+        Sys.sleep(sleeptime__ * try)
+        
+        try <- try + 1
+        
+    }
+}
+
 # This does the real work to retrieve the usernames from the guild information.
 # It's wrapped with retrieveAllUserNames because the data is paginated, so getMemberNodes
 # extracts the data from a single page while retrieveAllUserNames feeds it a page at a
@@ -34,7 +60,7 @@ getMemberNodes <- function(req_url, page) {
     
     # these two lines get the xml
     cur_req_url <- paste0(req_url, "&page=", page)
-    inner_xml <- read_xml(cur_req_url)
+    inner_xml <- read_xml(queryBGG(cur_req_url))
     
     # and this returns the member nodes inside
     return(xml_find_all(inner_xml, "//member"))
@@ -81,34 +107,7 @@ getRatedGames <- function(username) {
                     "&stats=1",                                          # full stats (including ratings)
                     "&excludesubtype=boardgameexpansion")                # exclude expansions
   
-  # The API works a little weirdly. Sometimes you have to wait for the server to
-  # retrieve the result. Unfortunately you can't use a callback or a promise. If the
-  # data is not ready yet, you get an http status of 202.
-  
-  response <- NULL
-  
-  repeat{
-      response <- GET(request)
-      
-      # if we get a 200 we're good
-      if (response$status_code == 200) break
-      
-      # protecting against some other thing going wrong
-      if (response$status_code != 202) {
-          
-          # in this case, throw a warning to the console...
-          warning(paste("The collection of rated games for user",
-                        username,
-                        "could not be found."))
-          
-          return(list())
-      }
-    
-    # wait before re-requesting to minimize the number of times this loop will run
-    Sys.sleep(sleeptime__) 
-  }
-  
-  collection <- read_xml(response$content)
+  collection <- read_xml(queryBGG(request))
   
   # sometimes the response might actually be an error,
   if (length(xml_find_all(collection, "//error")) > 0) {
@@ -203,11 +202,12 @@ assembleGameDataFile <- function(game_ratings) {
         
         # get a comma-delimited list of games for this batch
         ids <- paste0(game_ratings$ID[start_id:end_id], collapse = ",")
+        request <- paste0("https://www.boardgamegeek.com/xmlapi2/thing?id=",
+                          ids,
+                          "&stats=1")
         
         # build the api query for this batch and store the results
-        games_batch <- read_xml(paste0("https://www.boardgamegeek.com/xmlapi2/thing?id=",
-                                       ids,
-                                       "&stats=1"))
+        games_batch <- read_xml(queryBGG(request))
         
         # run the xpath for each piece of data we want
         names <- xml_text(xml_find_all(games_batch, "//name[@type='primary']/@value"))
