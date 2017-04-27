@@ -86,8 +86,7 @@ retrieveAllUserNames <- function(req_url) {
     
     # usernames are in the "name" attribute inside each member node
     # xml_attr pries them out and we append that vector to the existing one
-    username_list <- c(username_list, 
-                       xml_attr(members, "name"))
+    members %>% xml_attr("name") %>% c(username_list, .) -> username_list
     
     # to prevent from throttling the server
     Sys.sleep(sleeptime__)
