@@ -118,28 +118,11 @@ getRatedGames <- function(username) {
                     "could not be found."))
       
       # .. and return an empty vector
-      return(list())
+      return(NULL)
   }
   
-  collection %>% xml_find_all("//item") %>% return()
+  return(collection)
                     
-}
-
-addUsersGames <- function(games, games_list) {
-    
-    # no need to process an empty list! will probably never happen, but just in case
-    if ( length(games) == 0 ) return(games_list)
-    
-    # the "games" object is xml, so here we're extracting the values we need
-    id <- games %>% xml_find_all("@objectid") %>% xml_text() %>% as.integer()
-    member_rating <- games %>% xml_find_all("//rating/@value") %>% xml_text() %>% as.numeric()
-    
-    # then we stitch these vectors together into a data.frame
-    # and return a concatenation of both lists
-    data.frame(ID = id, MemberRating = member_rating)   %>%
-        rbind(games_list, .)                            %>%
-        return()
-    
 }
 
 getGuildsRatedGames <- function(guild_usernames) {
@@ -153,11 +136,20 @@ getGuildsRatedGames <- function(guild_usernames) {
         users_rated_games <- getRatedGames(guild_usernames[i])
         
         # sometimes a user hasn't actually rated anything, so checking for that.
-        if ( length(users_rated_games) > 0 ) {
+        if ( !is.null(users_rated_games) ) {
             
             # if they have, addUsersGames concatenates the new list of ratings
             # with the old
-            games_list <- addUsersGames(users_rated_games, games_list)
+            #games_list <- addUsersGames(users_rated_games, games_list)
+            
+            id <- users_rated_games %>% xml_find_all("//@objectid") %>% xml_text() %>% as.integer()
+            member_rating <- users_rated_games %>% xml_find_all("//rating/@value") %>% 
+                xml_text() %>% as.numeric()
+            
+            # then we stitch these vectors together into a data.frame
+            # and return a concatenation of both lists
+            games_list <- data.frame(ID = id, MemberRating = member_rating)   %>%
+                rbind(games_list, .)                           
         }
         
         # sleeping in order not to peg the server
@@ -280,9 +272,7 @@ assembleGameDataFile <- function(game_ratings) {
 # will be necessary.
 
 # real guild id = 1290
-
-guild_data_url <- "https://www.boardgamegeek.com/xmlapi2/guild?id=1274&members=1"
-start_time <- Sys.time()
+guild_data_url <- "https://www.boardgamegeek.com/xmlapi2/guild?id=2737&members=1"
 guild_usernames <- retrieveAllUserNames(guild_data_url)
 
 ####################################################################################
@@ -342,8 +332,7 @@ rm(game_ratings)
 # look up the game data using the ids we've gathered
 # then parse that data to build the final games list with all the things!
 game_list_df <- assembleGameDataFile(avg_game_ratings)
-end_time <- Sys.time()
-end_time - start_time
+
 ####################################################################################
 # STEP 5: Clean up unneeded variables.
 ####################################################################################
