@@ -200,26 +200,38 @@ assembleGameDataFile <- function(game_ratings) {
         if (end_id > num_games) end_id <- num_games # preventing reading past the end
         
         # get a comma-delimited list of games for this batch
-        ids <- paste0(game_ratings$ID[start_id:end_id], collapse = ",")
-        request <- paste0("https://www.boardgamegeek.com/xmlapi2/thing?id=",
-                          ids,
-                          "&stats=1")
-        
-        # build the api query for this batch and store the results
-        games_batch <- read_xml(queryBGG(request))
+        paste0(game_ratings$ID[start_id:end_id], collapse = ",") %>%
+        # use it to retrieve the xml for this particular batch of games
+        paste0("https://www.boardgamegeek.com/xmlapi2/thing?id=",
+               .,  # the previous call is being passed here
+               "&stats=1")  %>%
+            queryBGG()      %>%
+            read_xml()      ->
+            games_batch
         
         # run the xpath for each piece of data we want
-        names <- xml_text(xml_find_all(games_batch, "//name[@type='primary']/@value"))
-        years <- as.integer(xml_text(xml_find_all(games_batch, "//yearpublished/@value")))
-        bgg_ratings <- as.numeric(xml_text(xml_find_all(games_batch, "//ratings/average/@value")))
-        bgg_ranks <- as.numeric(xml_text(xml_find_all(games_batch, "//rank[@name='boardgame']/@value")))
-        weights <- as.numeric(xml_text(xml_find_all(games_batch, "//averageweight/@value")))
-        min_players <- as.integer(xml_text(xml_find_all(games_batch, "//minplayers/@value")))
-        max_players <- as.integer(xml_text(xml_find_all(games_batch, "//maxplayers/@value")))
-        min_times <- as.integer(xml_text(xml_find_all(games_batch, "//minplaytime/@value")))
-        max_times <- as.integer(xml_text(xml_find_all(games_batch, "//maxplaytime/@value")))
-        min_ages <- as.integer(xml_text(xml_find_all(games_batch, "//minage/@value")))
-        copies_owned <- as.integer(xml_text(xml_find_all(games_batch, "//owned/@value")))
+        names <- 
+            games_batch %>% xml_find_all("//name[@type='primary']/@value") %>% xml_text()
+        years <- 
+            games_batch %>% xml_find_all("//yearpublished/@value") %>% xml_text() %>% as.integer()
+        bgg_ratings <- 
+            games_batch %>% xml_find_all("//ratings/average/@value") %>% xml_text() %>% as.numeric()
+        bgg_ranks <- 
+            games_batch %>% xml_find_all("//rank[@name='boardgame']/@value") %>% xml_text() %>% as.integer()
+        weights <- 
+            games_batch %>% xml_find_all("//averageweight/@value") %>% xml_text() %>% as.numeric()
+        min_players <- 
+            games_batch %>% xml_find_all("//minplayers/@value") %>% xml_text() %>% as.integer()
+        max_players <- 
+            games_batch %>% xml_find_all("//maxplayers/@value") %>% xml_text() %>% as.integer()
+        min_times <- 
+            games_batch %>% xml_find_all("//minplaytime/@value") %>% xml_text() %>% as.integer()
+        max_times <- 
+            games_batch %>% xml_find_all("//maxplaytime/@value") %>% xml_text() %>% as.integer()
+        min_ages <- 
+            games_batch %>% xml_find_all("//minage/@value") %>% xml_text() %>% as.integer()
+        copies_owned <- 
+            games_batch %>% xml_find_all("//owned/@value") %>% xml_text() %>% as.integer()
         
         # create a new, temp data.frame that represents this batch and add the rows
         # to the master data frame
@@ -291,10 +303,11 @@ game_ratings <- guild_usernames %>%
 # the mean of the ratings, rounds that mean to 3 significant digits, then returns the
 # value.
 
-avg_game_ratings <- aggregate(MemberRating ~ ID, data = game_ratings,
-                             FUN = function(ratings) {
-                                   return(round(mean(ratings),3))
-                                 })
+avg_game_ratings <- game_ratings %>% 
+    aggregate(MemberRating ~ ID, 
+              data = .,
+              FUN = . %>% mean() %>% round(3) %>% return()
+    )
 
 ####################################################################################
 # STEP 4: Gather additional details about each game by id and build the final df
