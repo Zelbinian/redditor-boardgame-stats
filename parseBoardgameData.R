@@ -99,14 +99,14 @@ retrieveAllUserNames <- function(req_url) {
 
 getRatedGames <- function(username) {
   
-  # stitch together the url for the api request
-  request <- paste0("https://www.boardgamegeek.com/xmlapi2/collection?", # api path for collection info
-                    "username=",gsub(" ", "%20", username),              # for this user (sanitized string)
-                    "&rated=1",                                          # only rated games
-                    "&stats=1",                                          # full stats (including ratings)
-                    "&excludesubtype=boardgameexpansion")                # exclude expansions
-  
-  collection <- read_xml(queryBGG(request))
+    # stitch together the url for the api request
+    paste0("https://www.boardgamegeek.com/xmlapi2/collection?", # api path for collection info
+           "username=",gsub(" ", "%20", username),              # for this user (sanitized string)
+           "&rated=1",                                          # only rated games
+           "&stats=1",                                          # full stats (including ratings)
+           "&excludesubtype=boardgameexpansion") %>%            # exclude expansions
+        queryBGG() %>%
+        read_xml() -> collection
   
   # sometimes the response might actually be an error,
   if (length(xml_find_all(collection, "//error")) > 0) {
@@ -120,7 +120,7 @@ getRatedGames <- function(username) {
       return(list())
   }
   
-  return(xml_find_all(collection, "//item"))
+  collection %>% xml_find_all("//item") %>% return()
                     
 }
 
@@ -130,14 +130,14 @@ addUsersGames <- function(games, games_list) {
     if ( length(games) == 0 ) return(games_list)
     
     # the "games" object is xml, so here we're extracting the values we need
-    id <- as.integer(xml_text(xml_find_all(games, "@objectid")))
-    member_rating <- as.numeric(xml_text(xml_find_all(games, "//rating/@value")))
+    id <- games %>% xml_find_all("@objectid") %>% xml_text() %>% as.integer()
+    member_rating <- games %>% xml_find_all("//rating/@value") %>% xml_text() %>% as.numeric()
     
-    # then we stitch these vectors together into a data.frame..
-    new_games_list <- data.frame(ID = id, MemberRating = member_rating)
-    
+    # then we stitch these vectors together into a data.frame
     # and return a concatenation of both lists
-    return (rbind(games_list, new_games_list))
+    data.frame(ID = id, MemberRating = member_rating)   %>%
+        rbind(games_list, .)                            %>%
+        return()
     
 }
 
@@ -166,7 +166,7 @@ getGuildsRatedGames <- function(guild_usernames) {
     return(games_list)
 }
 
-pruneRatings <- function(threshold = 5, ratings) {
+pruneRatings <- function(ratings, threshold = 5) {
     table_ratings <- table(ratings)
     to_keep <- table_ratings[rowSums(table_ratings) >= threshold,]
     
@@ -263,7 +263,7 @@ assembleGameDataFile <- function(game_ratings) {
 
 # real guild id = 1290
 
-guild_data_url <- "https://www.boardgamegeek.com/xmlapi2/guild?id=2737&members=1"
+guild_data_url <- "https://www.boardgamegeek.com/xmlapi2/guild?id=1727&members=1"
 start_time <- Sys.time()
 guild_usernames <- retrieveAllUserNames(guild_data_url)
 
@@ -274,12 +274,13 @@ guild_usernames <- retrieveAllUserNames(guild_data_url)
 # apply or any of the other usual tricks for looping in R won't work because guild_usernames
 # is just a simple vector, so to grab the list of rated games (and their ratings) for
 # each guild member we have to do it the old fashioned way.
-
-game_ratings <- getGuildsRatedGames(guild_usernames)
-
-# games that have only been rated by a few people skew the data, so pruning
+# 
+# Games that have only been rated by a few people skew the data, so pruning
 # default threshold is 5
-game_ratings <- pruneRatings(game_ratings)
+
+game_ratings <- guild_usernames %>% 
+    getGuildsRatedGames()       %>%
+    pruneRatings()
 
 ####################################################################################
 # STEP 3: Aggregate the ratings
