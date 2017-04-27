@@ -28,13 +28,14 @@ sleeptime__ <- 4 # global setting for how long to sleep between API calls
 # The BGG API/server is wonky enough that sometimes queries fail unexpectedly. This should
 # protect against that.
 
-queryBGG <- function(request) {
+queryBGG <- function(request, tries = 10) {
     try <- 1
     
     repeat {
         
-        if (try > 5) {
+        if (try > tries) {
             paste0("BGG cannot currently execute the query:\n", request,
+                   "\nHTTP Status:", response$status_code,
                    "\nPlease check server status.") %>% stop()
         }
         
@@ -45,7 +46,7 @@ queryBGG <- function(request) {
         paste("BGG returned status", response$status_code, "for query:\n", request) %>% 
             warning()
         
-        Sys.sleep(sleeptime__ * try)
+        Sys.sleep(sleeptime__ * try * 1.5)
         
         try <- try + 1
         
@@ -275,7 +276,7 @@ assembleGameDataFile <- function(game_ratings) {
 
 # real guild id = 1290
 
-guild_data_url <- "https://www.boardgamegeek.com/xmlapi2/guild?id=1727&members=1"
+guild_data_url <- "https://www.boardgamegeek.com/xmlapi2/guild?id=1274&members=1"
 start_time <- Sys.time()
 guild_usernames <- retrieveAllUserNames(guild_data_url)
 
@@ -306,8 +307,7 @@ game_ratings <- guild_usernames %>%
 avg_game_ratings <- game_ratings %>% 
     aggregate(MemberRating ~ ID, 
               data = .,
-              FUN = . %>% mean() %>% round(3) %>% return()
-    )
+              FUN = . %>% mean() %>% round(3) %>% return())
 
 ####################################################################################
 # STEP 4: Gather additional details about each game by id and build the final df
