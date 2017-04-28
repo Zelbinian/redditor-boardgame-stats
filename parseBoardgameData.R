@@ -207,28 +207,39 @@ assembleGameDataFile <- function(game_ratings) {
             games_batch
         
         # run the xpath for each piece of data we want
-        names <- 
-            games_batch %>% xml_find_all("//name[@type='primary']/@value") %>% xml_text()
-        years <- 
-            games_batch %>% xml_find_all("//yearpublished/@value") %>% xml_text() %>% as.integer()
-        bgg_ratings <- 
-            games_batch %>% xml_find_all("//ratings/average/@value") %>% xml_text() %>% as.numeric()
-        bgg_ranks <- 
-            games_batch %>% xml_find_all("//rank[@name='boardgame']/@value") %>% xml_text() %>% as.integer()
-        weights <- 
-            games_batch %>% xml_find_all("//averageweight/@value") %>% xml_text() %>% as.numeric()
-        min_players <- 
-            games_batch %>% xml_find_all("//minplayers/@value") %>% xml_text() %>% as.integer()
-        max_players <- 
-            games_batch %>% xml_find_all("//maxplayers/@value") %>% xml_text() %>% as.integer()
-        min_times <- 
-            games_batch %>% xml_find_all("//minplaytime/@value") %>% xml_text() %>% as.integer()
-        max_times <- 
-            games_batch %>% xml_find_all("//maxplaytime/@value") %>% xml_text() %>% as.integer()
-        min_ages <- 
-            games_batch %>% xml_find_all("//minage/@value") %>% xml_text() %>% as.integer()
-        copies_owned <- 
-            games_batch %>% xml_find_all("//owned/@value") %>% xml_text() %>% as.integer()
+        names <- games_batch %>% 
+            xml_find_all("/items/item/name[@type='primary']/@value") %>% 
+            xml_text()
+        years <- games_batch %>% 
+            xml_find_all("/items/item/yearpublished/@value") %>% 
+            xml_text() %>% as.integer()
+        bgg_ratings <- games_batch %>% 
+            xml_find_all("/items/item/statistics/ratings/average/@value") %>% 
+            xml_text() %>% as.numeric()
+        bgg_ranks <- games_batch %>% 
+            xml_find_all("/items/item/statistics/ratings/ranks/rank[@name='boardgame']/@value") %>% 
+            xml_text() %>% as.integer()
+        weights <- games_batch %>% 
+            xml_find_all("/items/item/statistics/ratings/averageweight/@value") %>% 
+            xml_text() %>% as.numeric()
+        min_players <- games_batch %>% 
+            xml_find_all("/items/item/minplayers/@value") %>% 
+            xml_text() %>% as.integer()
+        max_players <- games_batch %>% 
+            xml_find_all("/items/item/maxplayers/@value") %>% 
+            xml_text() %>% as.integer()
+        min_times <- games_batch %>% 
+            xml_find_all("/items/item/minplaytime/@value") %>% 
+            xml_text() %>% as.integer()
+        max_times <- games_batch %>% 
+            xml_find_all("/items/item/maxplaytime/@value") %>% 
+            xml_text() %>% as.integer()
+        min_ages <- games_batch %>% 
+            xml_find_all("/items/item/minage/@value") %>% 
+            xml_text() %>% as.integer()
+        copies_owned <- games_batch %>% 
+            xml_find_all("/items/item/statistics/ratings/owned/@value") %>% 
+            xml_text() %>% as.integer()
         
         # create a new, temp data.frame that represents this batch and add the rows
         # to the master data frame
