@@ -138,16 +138,15 @@ getGuildsRatedGames <- function(guild_usernames) {
         # sometimes a user hasn't actually rated anything, so checking for that.
         if ( !is.null(users_rated_games) ) {
             
-            # if they have, addUsersGames concatenates the new list of ratings
-            # with the old
-            #games_list <- addUsersGames(users_rated_games, games_list)
+            # if this user has rated games, use xpath to add the ids and ratings
             
-            id <- users_rated_games %>% xml_find_all("//@objectid") %>% xml_text() %>% as.integer()
-            member_rating <- users_rated_games %>% xml_find_all("//rating/@value") %>% 
-                xml_text() %>% as.numeric()
+            id <- users_rated_games %>% 
+                xml_find_all("/items/item/@objectid") %>% xml_text() %>% as.integer()
+            member_rating <- users_rated_games %>% 
+                xml_find_all("/items/item/stats/rating/@value") %>% xml_text() %>% as.numeric()
             
             # then we stitch these vectors together into a data.frame
-            # and return a concatenation of both lists
+            # and attach it to the master data.frame
             games_list <- data.frame(ID = id, MemberRating = member_rating)   %>%
                 rbind(games_list, .)                           
         }
