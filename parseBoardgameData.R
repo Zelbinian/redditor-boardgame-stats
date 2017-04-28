@@ -17,7 +17,7 @@ require("xml2")
 require("httr")
 require("magrittr")
 
-sleeptime__ <- 4 # global setting for how long to sleep between API calls
+sleeptime__ <- 5 # global setting for how long to sleep between API calls
 
 ####################################################################################
 # FUNCTION REPOSITORY
@@ -28,14 +28,14 @@ sleeptime__ <- 4 # global setting for how long to sleep between API calls
 # The BGG API/server is wonky enough that sometimes queries fail unexpectedly. This should
 # protect against that.
 
-queryBGG <- function(request, tries = 10) {
+queryBGG <- function(request, tries = 15) {
     try <- 1
     
     repeat {
         
         if (try > tries) {
+            http_status(reponse)
             paste0("BGG cannot currently execute the query:\n", request,
-                   "\nHTTP Status:", response$status_code,
                    "\nPlease check server status.") %>% stop()
         }
         
@@ -46,7 +46,7 @@ queryBGG <- function(request, tries = 10) {
         paste("BGG returned status", response$status_code, "for query:\n", request) %>% 
             warning()
         
-        Sys.sleep(sleeptime__ * try * 1.5)
+        Sys.sleep(sleeptime__ * try)
         
         try <- try + 1
         
@@ -59,6 +59,8 @@ queryBGG <- function(request, tries = 10) {
 # time.
 
 getMembers <- function(req_url, page) {
+    
+    paste("Requesting member page",page) %>% print()
     
     paste0(req_url, "&page=", page) %>% # build the request string for the API
         queryBGG()                  %>% # make the request to get the XML
@@ -132,6 +134,8 @@ getGuildsRatedGames <- function(guild_usernames) {
     # we want to get the game ratings for each user in the guild
     for (i in 1:length(guild_usernames)) {
         
+        paste0("Retrieving collection for user ",i,"/",length(guild_usernames)) %>% print()
+        
         # call a helper function to actually get the games for this user
         users_rated_games <- getRatedGames(guild_usernames[i])
         
@@ -175,7 +179,7 @@ assembleGameDataFile <- function(game_ratings) {
     # some helper variables for the while loop
     num_games <- length(game_ratings$ID)       # quick access to length of the list
     start_id <- 1                       # <
-    end_id <- slice_size <- 375         # size of batch / query
+    end_id <- slice_size <- 150         # size of batch / query
                       
     game_data <- data.frame(Name = character(0), # master data.frame, empty to start
                             Year = integer(0),
@@ -193,6 +197,8 @@ assembleGameDataFile <- function(game_ratings) {
     # one time without falling over, so we have to batch it.
     
     while (start_id <= num_games) {
+        
+        paste0("Retrieving info for game ",start_id,"/",num_games) %>% print()
         
         if (end_id > num_games) end_id <- num_games # preventing reading past the end
         
@@ -282,7 +288,8 @@ assembleGameDataFile <- function(game_ratings) {
 # will be necessary.
 
 # real guild id = 1290
-guild_data_url <- "https://www.boardgamegeek.com/xmlapi2/guild?id=2737&members=1"
+guild_data_url <- "https://www.boardgamegeek.com/xmlapi2/guild?id=1229&members=1"
+profvis({
 guild_usernames <- retrieveAllUserNames(guild_data_url)
 
 ####################################################################################
@@ -342,7 +349,7 @@ rm(game_ratings)
 # look up the game data using the ids we've gathered
 # then parse that data to build the final games list with all the things!
 game_list_df <- assembleGameDataFile(avg_game_ratings)
-
+})
 ####################################################################################
 # STEP 5: Clean up unneeded variables.
 ####################################################################################
