@@ -58,12 +58,12 @@ queryBGG <- function(request, tries = 10) {
 # extracts the data from a single page while retrieveAllUserNames feeds it a page at a
 # time.
 
-getMemberNodes <- function(req_url, page) {
+getMembers <- function(req_url, page) {
     
     paste0(req_url, "&page=", page) %>% # build the request string for the API
         queryBGG()                  %>% # make the request to get the XML
         read_xml()                  %>% # read it in
-        xml_find_all("//member")    %>% # find all the member nodes
+        xml_find_all("/guild/members/member/@name") %>%  # find them
         return()                        # return them
     
 }
@@ -79,7 +79,7 @@ retrieveAllUserNames <- function(req_url) {
     
     # grabbing the next page of members
     page <- page + 1
-    members <- getMemberNodes(req_url, page)
+    members <- getMembers(req_url, page)
     
     # when we get past the end of the list, the XML returned by the API no longer has
     # any "member" elements, so that's how the script can tell when we are done
@@ -87,7 +87,7 @@ retrieveAllUserNames <- function(req_url) {
     
     # usernames are in the "name" attribute inside each member node
     # xml_attr pries them out and we append that vector to the existing one
-    members %>% xml_attr("name") %>% c(username_list, .) -> username_list
+    members %>% xml_text() %>% c(username_list, .) -> username_list
     
     # to prevent from throttling the server
     Sys.sleep(sleeptime__)
@@ -287,10 +287,10 @@ guild_usernames <- retrieveAllUserNames(guild_data_url)
 
 guild_size <- length(guild_usernames)
 
-game_ratings <- guild_usernames %>% 
+game_ratings <- guild_usernames %>%
     getGuildsRatedGames()       %>%
     pruneRatings(guild_size)
-    
+
 # Some memory optimization
 rm(guild_usernames)
 
@@ -303,8 +303,8 @@ rm(guild_usernames)
 # the mean of the ratings, rounds that mean to 3 significant digits, then returns the
 # value.
 
-avg_game_ratings <- game_ratings %>% 
-    aggregate(MemberRating ~ ID, 
+avg_game_ratings <- game_ratings %>%
+    aggregate(MemberRating ~ ID,
               data = .,
               FUN = . %>% mean() %>% round(3) %>% return())
 
