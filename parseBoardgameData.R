@@ -40,15 +40,35 @@ queryBGG <- function(request, tries = 15) {
         }
         
         response <- GET(request)
+        status <- response$status_code
         
-        if (response$status_code == 200) return(response$content)
-        
-        paste("BGG returned status", response$status_code, "for query:\n", request) %>% 
-            warning()
-        
-        Sys.sleep(sleeptime__ * try)
-        
-        try <- try + 1
+        if (status == 200) {
+            return(response$content)
+        }
+        else if (status == 202) { 
+            
+            paste0("Request for '",request,"' encountered a 202 on try ",try,".") %>% print()
+            
+            Sys.sleep(sleeptime__ * try)
+            
+            # for 202s, we'll try infinitely. It WILL work, it just might take a bit.
+            try <- ifelse(try == tries, tries, try + 1)
+            
+        } else if (status >= 500) {
+            
+            paste0("Request for '",request,"' encountered a ",status," on try ",try,".") %>% print()
+            
+            # If we get a 502 or 504, that means the server is pegged and/or
+            # we've been rate limited. In this case, sit and wait a good long while
+            # before making another attempt.
+            
+            Sys.sleep(60)
+            
+            paste("BGG returned status", response$status_code, "for query:\n", request) %>% 
+                warning()
+            
+            try <- try + 1
+        }
         
     }
 }
@@ -111,8 +131,8 @@ getRatedGames <- function(username) {
         queryBGG() %>%
         read_xml() -> collection
   
-  # sometimes the response might actually be an error,
-  if (length(xml_find_all(collection, "//error")) > 0) {
+  # sometimes the response will either be an error or the user has rated no games
+  if (xml_find_all(collection, "//item") %>% length() == 0) {
       
       # in this case, throw a warning to the console...
       warning(paste("The collection of rated games for user",
@@ -152,7 +172,7 @@ getGuildsRatedGames <- function(guild_usernames) {
             # then we stitch these vectors together into a data.frame
             # and attach it to the master data.frame
             games_list <- data.frame(ID = id, MemberRating = member_rating)   %>%
-                rbind(games_list, .)                           
+               rbind(games_list, .)  
         }
         
         # sleeping in order not to peg the server
@@ -179,7 +199,7 @@ assembleGameDataFile <- function(game_ratings) {
     # some helper variables for the while loop
     num_games <- length(game_ratings$ID)       # quick access to length of the list
     start_id <- 1                       # <
-    end_id <- slice_size <- 150         # size of batch / query
+    end_id <- slice_size <- 200         # size of batch / query
                       
     game_data <- data.frame(Name = character(0), # master data.frame, empty to start
                             Year = integer(0),
@@ -193,8 +213,8 @@ assembleGameDataFile <- function(game_ratings) {
                             MinAge = integer(0),
                             CopiesOwned = integer(0))  
     
-    # The while loop is cuz 400 is about the limit of game data the API can return at
-    # one time without falling over, so we have to batch it.
+    # The while loop lets us batch the requests so we don't have to do this one game
+    # at a time.
     
     while (start_id <= num_games) {
         
