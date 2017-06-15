@@ -308,8 +308,8 @@ assembleGameDataFile <- function(game_ratings) {
 # will be necessary.
 
 # real guild id = 1290
-guild_data_url <- "https://www.boardgamegeek.com/xmlapi2/guild?id=1229&members=1"
-profvis({
+guild_data_url <- "https://www.boardgamegeek.com/xmlapi2/guild?id=138&members=1"
+
 guild_usernames <- retrieveAllUserNames(guild_data_url)
 
 ####################################################################################
@@ -322,11 +322,18 @@ guild_usernames <- retrieveAllUserNames(guild_data_url)
 # 
 # Games that have only been rated by a few people skew the data, so also pruning
 
-guild_size <- length(guild_usernames)
+guild_username_sections <- split(guild_usernames, ceiling(seq_along(guild_usernames)/10))
 
-game_ratings <- guild_usernames %>%
-    getGuildsRatedGames()       %>%
-    pruneRatings(guild_size)
+game_ratings <- data.frame(ID = integer(0), MemberRating = numeric(0))
+
+for (usernames in guild_username_sections) {
+  game_ratings <- usernames %>% getGuildsRatedGames() %>% rbind(game_ratings, .)
+}
+
+# game_ratings <- guild_usernames %>%
+#     getGuildsRatedGames()       %>%
+  
+game_ratings <- pruneRatings(game_ratings, length(guild_usernames))
 
 # Some memory optimization
 rm(guild_usernames)
@@ -369,7 +376,7 @@ rm(game_ratings)
 # look up the game data using the ids we've gathered
 # then parse that data to build the final games list with all the things!
 game_list_df <- assembleGameDataFile(avg_game_ratings)
-})
+
 ####################################################################################
 # STEP 5: Clean up unneeded variables.
 ####################################################################################
