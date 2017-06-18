@@ -185,8 +185,8 @@ getGuildsRatedGames <- function(guild_usernames) {
 pruneRatings <- function(ratings, guild_size) {
     
     # threshold shall be 5 or 1% of guild_size, whichever is larger
-    one_percent <- guild_size * .01
-    threshold <- ifelse(one_percent > 5, one_percent, 5)
+    percentage <- guild_size * .025
+    threshold <- ifelse(one_percent > 5, percentage, 5)
     
     table_ratings <- table(ratings)
     to_keep <- table_ratings[rowSums(table_ratings) >= threshold,]
@@ -308,7 +308,7 @@ assembleGameDataFile <- function(game_ratings) {
 # will be necessary.
 
 # real guild id = 1290
-guild_data_url <- "https://www.boardgamegeek.com/xmlapi2/guild?id=138&members=1"
+guild_data_url <- "https://www.boardgamegeek.com/xmlapi2/guild?id=1290&members=1"
 
 guild_usernames <- retrieveAllUserNames(guild_data_url)
 
