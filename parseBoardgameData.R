@@ -28,49 +28,29 @@ sleeptime__ <- 5 # global setting for how long to sleep between API calls
 # The BGG API/server is wonky enough that sometimes queries fail unexpectedly. This should
 # protect against that.
 
-queryBGG <- function(request, tries = 15) {
-    try <- 1
+queryBGG <- function(request) {
     
-    repeat {
+    response <- GET(paste0("https://www.boardgamegeek.com/xmlapi2/",request))
+    
+    if (response$status_code >= 500) {
         
-        if (try > tries) {
-            http_status(reponse)
-            paste0("BGG cannot currently execute the query:\n", request,
-                   "\nPlease check server status.") %>% stop()
-        }
+        paste0("Request for '",request,"' encountered a ",status," on try ",try,".") %>% print()
         
+        # If we get a 502 or 504, that means the server is pegged and/or
+        # we've been rate limited. In this case, sit and wait a good long while
+        # before making another attempt.
+        
+        Sys.sleep(60)
+        
+        paste("BGG returned status", response$status_code, "for query:\n", request) %>% 
+            warning()
+        
+        # try again
         response <- GET(request)
-        status <- response$status_code
-        
-        if (status == 200) {
-            return(response$content)
-        }
-        else if (status == 202) { 
-            
-            paste0("Request for '",request,"' encountered a 202 on try ",try,".") %>% print()
-            
-            Sys.sleep(sleeptime__ * try)
-            
-            # for 202s, we'll try infinitely. It WILL work, it just might take a bit.
-            try <- ifelse(try == tries, tries, try + 1)
-            
-        } else if (status >= 500) {
-            
-            paste0("Request for '",request,"' encountered a ",status," on try ",try,".") %>% print()
-            
-            # If we get a 502 or 504, that means the server is pegged and/or
-            # we've been rate limited. In this case, sit and wait a good long while
-            # before making another attempt.
-            
-            Sys.sleep(60)
-            
-            paste("BGG returned status", response$status_code, "for query:\n", request) %>% 
-                warning()
-            
-            try <- try + 1
-        }
-        
     }
+    
+    return(response$content)
+    
 }
 
 # This does the real work to retrieve the usernames from the guild information.
@@ -78,11 +58,11 @@ queryBGG <- function(request, tries = 15) {
 # extracts the data from a single page while retrieveAllUserNames feeds it a page at a
 # time.
 
-getMembers <- function(req_url, page) {
+getMembers <- function(guild_id, page) {
     
     paste("Requesting member page",page) %>% print()
     
-    paste0(req_url, "&page=", page) %>% # build the request string for the API
+    paste0("guild?id=", guild_id, "&members=1&page=", page) %>% # build the request string for the API
         queryBGG()                  %>% # make the request to get the XML
         read_xml()                  %>% # read it in
         xml_find_all("/guild/members/member/@name") %>%  # find them
@@ -90,7 +70,7 @@ getMembers <- function(req_url, page) {
     
 }
 
-retrieveAllUserNames <- function(req_url) {
+retrieveAllUserNames <- function(guild_id) {
   
   # initializing helper variables
   page <- 0
@@ -101,7 +81,7 @@ retrieveAllUserNames <- function(req_url) {
     
     # grabbing the next page of members
     page <- page + 1
-    members <- getMembers(req_url, page)
+    members <- getMembers(guild_id, page)
     
     # when we get past the end of the list, the XML returned by the API no longer has
     # any "member" elements, so that's how the script can tell when we are done
@@ -123,11 +103,11 @@ retrieveAllUserNames <- function(req_url) {
 getRatedGames <- function(username) {
   
     # stitch together the url for the api request
-    paste0("https://www.boardgamegeek.com/xmlapi2/collection?", # api path for collection info
-           "username=",gsub(" ", "%20", username),              # for this user (sanitized string)
-           "&rated=1",                                          # only rated games
-           "&stats=1",                                          # full stats (including ratings)
-           "&excludesubtype=boardgameexpansion") %>%            # exclude expansions
+    paste0("collection?",                               # api path for collection info
+           "username=",gsub(" ", "%20", username),      # for this user (sanitized string)
+           "&rated=1",                                  # only rated games
+           "&stats=1",                                  # full stats (including ratings)
+           "&excludesubtype=boardgameexpansion") %>%    # exclude expansions
         queryBGG() %>%
         read_xml() -> collection
   
@@ -142,6 +122,8 @@ getRatedGames <- function(username) {
       # .. and return an empty vector
       return(NULL)
   }
+  
+  #
   
   return(collection)
                     
@@ -186,7 +168,7 @@ pruneRatings <- function(ratings, guild_size) {
     
     # threshold shall be 5 or 1% of guild_size, whichever is larger
     percentage <- guild_size * .025
-    threshold <- ifelse(one_percent > 5, percentage, 5)
+    threshold <- ifelse(percentage > 5, percentage, 5)
     
     table_ratings <- table(ratings)
     to_keep <- table_ratings[rowSums(table_ratings) >= threshold,]
@@ -225,7 +207,7 @@ assembleGameDataFile <- function(game_ratings) {
         # get a comma-delimited list of games for this batch
         paste0(game_ratings$ID[start_id:end_id], collapse = ",") %>%
         # use it to retrieve the xml for this particular batch of games
-        paste0("https://www.boardgamegeek.com/xmlapi2/thing?id=",
+        paste0("thing?id=",
                .,  # the previous call is being passed here
                "&stats=1")  %>%
             queryBGG()      %>%
@@ -293,11 +275,12 @@ assembleGameDataFile <- function(game_ratings) {
     # add ID and MemberRating columns to the data.frame
     game_data$ID <- game_ratings$ID
     game_data$MemberRating <- game_ratings$MemberRating
+    game_data$NumRatings <- game_ratings$NumRatings
     
     # return the data.frame with columns in the expected order
     
     return(game_data[c("ID","Name","Year","MemberRating","BGGRating","BGGRank","Weight",
-                       "MinPlayers","MaxPlayers","MinTime","MaxTime","MinAge","CopiesOwned")])
+                       "MinPlayers","MaxPlayers","MinTime","MaxTime","MinAge","CopiesOwned","NumRatings")])
 }
 
 ####################################################################################
@@ -308,9 +291,8 @@ assembleGameDataFile <- function(game_ratings) {
 # will be necessary.
 
 # real guild id = 1290
-guild_data_url <- "https://www.boardgamegeek.com/xmlapi2/guild?id=1290&members=1"
 
-guild_usernames <- retrieveAllUserNames(guild_data_url)
+usernames_to_process <- retrieveAllUserNames(1290)
 
 ####################################################################################
 # STEP 2: Get each member's collection of rated games (and the ratings for them, too)
@@ -322,21 +304,64 @@ guild_usernames <- retrieveAllUserNames(guild_data_url)
 # 
 # Games that have only been rated by a few people skew the data, so also pruning
 
-guild_username_sections <- split(guild_usernames, ceiling(seq_along(guild_usernames)/10))
-
 game_ratings <- data.frame(ID = integer(0), MemberRating = numeric(0))
+guild_size <- length(usernames_to_process)
+loops <- 0
 
-for (usernames in guild_username_sections) {
-  game_ratings <- usernames %>% getGuildsRatedGames() %>% rbind(game_ratings, .)
-}
-
-# game_ratings <- guild_usernames %>%
-#     getGuildsRatedGames()       %>%
+while(length(usernames_to_process) > 0) {
+  # some simple setup
+  num_usernames <- length(usernames_to_process)
+  paste("Usernames in queue: ", num_usernames) %>% print()
+  loops <- loops + 1
+  paste("Total Operations:",loops) %>% print()
   
-game_ratings <- pruneRatings(game_ratings, length(guild_usernames))
-
-# Some memory optimization
-rm(guild_usernames)
+  # pop
+  cur_username <- usernames_to_process[1]
+  if (num_usernames > 1) {
+    usernames_to_process <- usernames_to_process[2:num_usernames]
+  } else {
+    usernames_to_process <- NULL
+  }
+  
+  # make the request
+  # stitch together the url for the api request
+  paste0("Retrieving collection for ",cur_username) %>% print()
+  request <- paste0("https://www.boardgamegeek.com/xmlapi2/collection?", # api path for collection info
+         "username=",gsub(" ", "%20", cur_username),          # for this user (sanitized string)
+         "&rated=1",                                          # only rated games
+         "&stats=1",                                          # full stats (including ratings)
+         "&excludesubtype=boardgameexpansion")                # exclude expansions
+  response <- GET(request)
+  
+  # if the request comes back anything other than a 200, push in the back of the queue
+  
+  if (response$status_code != 200) {
+    # in this case, push the username back onto the queue
+    paste("Got a",response$status_code,"for",cur_username,", adding back into the queue.") %>% print()
+    usernames_to_process <- c(usernames_to_process, cur_username)
+  } else {
+  
+    collection <- read_xml(response$content)
+    # then evaluate the request to see if it's what ya need
+    
+    if (xml_find_all(collection, "//item") %>% length() == 0) {
+      # if it is, extract the info
+    } else {
+      id <- collection %>% 
+        xml_find_all("/items/item/@objectid") %>% xml_text() %>% as.integer()
+      member_rating <- collection %>% 
+        xml_find_all("/items/item/stats/rating/@value") %>% xml_text() %>% as.numeric()
+      
+      # then we stitch these vectors together into a data.frame
+      # and attach it to the master data.frame
+      game_ratings <- data.frame(ID = id, MemberRating = member_rating)   %>%
+        rbind(game_ratings, .)  
+    }
+  }
+  Sys.sleep(sleeptime__)
+}
+ 
+game_ratings <- pruneRatings(game_ratings, guild_size)
 
 ####################################################################################
 # STEP 3: Aggregate the ratings
@@ -352,9 +377,15 @@ avg_game_ratings <- game_ratings %>%
               data = .,
               FUN = . %>% mean() %>% round(3) %>% return())
 
+num_ratings <- game_ratings %>%
+    aggregate(MemberRating ~ ID,
+              data = .,
+              FUN = length)
+
+avg_game_ratings$NumRatings <- num_ratings[,2]
+
 # Some memory optimization
 paste("Total game ratings for group:",nrow(game_ratings)) %>% print()
-rm(game_ratings)
 
 ####################################################################################
 # STEP 4: Gather additional details about each game by id and build the final df
@@ -391,43 +422,13 @@ game_list_df[game_list_df == "NA"] <- NA
 game_list_df$Year[game_list_df$Year == 0] <- NA
 game_list_df$MinAge[game_list_df$MinAge == 0] <- NA
 
-# Some times max playtimes are not listed so they get reported as "0". A reasonable guess
-# in these circumstances is to have the max playtime equal the min playtime.
-# First step is to create a logical vector to tell us the offending rows.
-lower_max_time <- game_list_df$MaxTime < game_list_df$MinTime
+####################################################################################
+# STEP 7: Sort by rating and write out top 100 to a file
+####################################################################################
 
-# Then, if there are rows for which this is true, update them
-if (sum(lower_max_time) > 0) { # this means there are some rows where this condition holds
+# sorting the list by member rating, decending order
+game_list_df <- game_list_df[with(game_list_df, order(-MemberRating)),]
 
-    # write this info to a file so we can submit corrections to BGG
-    write.table(game_list_df[lower_max_time,],"badplaytimes.txt")
-
-    game_list_df[lower_max_time,]$MaxTime <- game_list_df[lower_max_time,]$MinTime
-
-}
-
-# We'll do a similar thing with player counts
-# Although the missing data replacement will be a bit more sophisticated in this case
-# We start the same way, by obtaining a logical vector telling us the offending rows
-lower_max_pcount <- game_list_df$MaxPlayers < game_list_df$MinPlayers
-
-if (sum(lower_max_pcount) > 0) {
-
-    # write this out to a file so we can submit corrections to BGG
-    write.table(game_list_df[lower_max_pcount,],"badplayercounts.txt")
-
-    # Here's what we're doing: for each entry, use it's min player count to find the median
-    # MAX player count for that min player count and then update the max player count.
-    # An example: Let's say game is 3 players min. Let's also say the median MAX player
-    # count for 3 player games in our dataset is 5. That's what we'd set the max to for
-    # the individual game. Crude, but effective.
-
-    for (i in which(lower_max_pcount)) {
-        min_play_count <- game_list_df[i,]$MinPlayers
-        game_list_df[i,]$MaxPlayers <- median(
-            game_list_df[game_list_df$MinPlayers == min_play_count,]$MaxPlayers)
-    }
-
-}
-
-
+# only selecting the columns that matter for the top 100
+game_list_df[,c(1:7,14)] %>% head(n=100) %>% 
+    write.csv(file = paste0("top100-",today(),".csv"), row.names = FALSE)
