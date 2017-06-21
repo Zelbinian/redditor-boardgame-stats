@@ -279,8 +279,7 @@ assembleGameDataFile <- function(game_ratings) {
     
     # return the data.frame with columns in the expected order
     
-    return(game_data[c("ID","Name","Year","MemberRating","BGGRating","BGGRank","Weight",
-                       "MinPlayers","MaxPlayers","MinTime","MaxTime","MinAge","CopiesOwned","NumRatings")])
+    return(game_data)
 }
 
 ####################################################################################
