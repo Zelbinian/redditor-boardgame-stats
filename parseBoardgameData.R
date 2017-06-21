@@ -427,6 +427,8 @@ game_list_df$MinAge[game_list_df$MinAge == 0] <- NA
 
 # sorting the list by member rating, decending order
 game_list_df <- game_list_df[with(game_list_df, order(-MemberRating)),]
+# resetting rownames 
+rownames(game_list_df) <- c(1:nrow(game_list_df))
 
 # only selecting the columns that matter for the top 100
 game_list_df[,c(1:7,14)] %>% head(n=100) %>% 
