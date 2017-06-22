@@ -301,9 +301,9 @@ calcRankChange <- function(game, prev_game_ratings) {
         if (rank_diff) { #if it's anything but zero, it'll be "true"
             if (rank_diff > 0) {
                 # the game has a WORSE rating than it did before
-                return(paste0("*???",rank_diff,"*"))
+                return(paste0("*▼",rank_diff,"*"))
             } else {
-                return(paste0("**???",abs(rank_diff),"**"))
+                return(paste0("**▲",abs(rank_diff),"**"))
             }
             
         } else {
@@ -313,7 +313,7 @@ calcRankChange <- function(game, prev_game_ratings) {
     } else {
         
         # if this game is NOT in the previous list, it's a new entry
-        return("~~???~~")
+        return("~~★~~")
     }
     
 }
