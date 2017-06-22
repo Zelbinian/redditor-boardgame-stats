@@ -283,7 +283,42 @@ assembleGameDataFile <- function(game_ratings) {
     return(game_data)
 }
 
-exportTop100 <- function(cur_game_ratings, filename) {
+calcRankChange <- function(game, prev_game_ratings) {
+    
+    if (game$ID %in% prev_game_ratings$ID) {
+        # the game is on the previous list so let's extract the row from the 
+        # previous list for processing and figure out the difference in rank
+        
+        prev_rank <- prev_game_ratings[prev_game_ratings$ID == game$ID,]$Rank
+        rank_diff <- as.integer(game$Rank) - as.integer(prev_rank)
+        
+        # at this point there are only three possiblities (remembering that lower 
+        # Rank is better):
+        # 1. the game is in the same spot as it was before
+        # 2. the game moved up some spots
+        # 3. the game moved down some spots 
+        
+        if (rank_diff) { #if it's anything but zero, it'll be "true"
+            if (rank_diff > 0) {
+                # the game has a WORSE rating than it did before
+                return(paste0("*???",rank_diff,"*"))
+            } else {
+                return(paste0("**???",abs(rank_diff),"**"))
+            }
+            
+        } else {
+            return("--")
+        }
+        
+    } else {
+        
+        # if this game is NOT in the previous list, it's a new entry
+        return("~~???~~")
+    }
+    
+}
+
+exportTop100 <- function(cur_game_ratings, prev_game_ratings, filename) {
     
     # first, write cur_game_ratings as a CSV
     write.csv(cur_game_ratings, paste0(filename, ".csv"))
@@ -303,7 +338,7 @@ exportTop100 <- function(cur_game_ratings, filename) {
                              "](http://www.boardgamegeek.com/boardgame/",
                              cur_game_ratings[i,]$ID,") (",cur_game_ratings[i,]$Year,")"),
                       cur_game_ratings[i,]$MemberRating,
-                      "--",
+                      calcRankChange(cur_game_ratings[i,], prev_game_ratings),
                       cur_game_ratings[i,]$NumRatings,
                       cur_game_ratings[i,]$BGGRating,
                       cur_game_ratings[i,]$BGGRank,
@@ -315,7 +350,7 @@ exportTop100 <- function(cur_game_ratings, filename) {
     
 }
 
-exportTop10 <- function(cur_game_ratings, filename) {
+exportTop10 <- function(cur_game_ratings, prev_game_ratings, filename) {
     mdfile <- paste0(filename, ".md")
     
     cat("Rank|Game|Rating|+/-\n",
@@ -331,7 +366,7 @@ exportTop10 <- function(cur_game_ratings, filename) {
                              "](http://www.boardgamegeek.com/boardgame/",
                              cur_game_ratings[i,]$ID,")"),
                       cur_game_ratings[i,]$MemberRating,
-                      "--")
+                      calcRankChange(cur_game_ratings[i,], prev_game_ratings))
         cat(gameline, sep = "|", file = mdfile, append = TRUE)
         cat("\n", file = mdfile, append = TRUE)
                       
@@ -362,6 +397,7 @@ usernames_to_process <- retrieveAllUserNames(1290)
 game_ratings <- data.frame(ID = integer(0), MemberRating = numeric(0))
 guild_size <- length(usernames_to_process)
 loops <- 0
+empty_collections <- 0
 
 while(length(usernames_to_process) > 0) {
   # some simple setup
@@ -401,6 +437,7 @@ while(length(usernames_to_process) > 0) {
     
     # is there anything in this collection?
     if (xml_find_all(collection, "//item") %>% length() == 0) {
+        empty_collections <- empty_collections + 1
         
     # if so, extract the info
     } else {
