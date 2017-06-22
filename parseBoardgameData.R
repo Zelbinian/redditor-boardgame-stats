@@ -282,6 +282,38 @@ assembleGameDataFile <- function(game_ratings) {
     return(game_data)
 }
 
+exportTop100 <- function(cur_game_ratings, filename) {
+    
+    # first, write cur_game_ratings as a CSV
+    write.csv(cur_game_ratings, paste0(filename, ".csv"))
+    
+    mdfile <- paste0(filename, ".md")
+    
+    cat("Rank|Game|Sub Rating|+/-|# Ratings|BGG Rating|BGG Rank|BGG Weight\n",
+        file = mdfile,
+        append = FALSE)
+    cat(":-|:-|:-|:-|:-|:-|:-|:-\n",
+        file = mdfile,
+        append = TRUE)
+    
+    for(i in 1:nrow(cur_game_ratings)) {
+        gameline <- c(i,
+                      paste0("[",cur_game_ratings[i,]$Name,
+                             "](http://www.boardgamegeek.com/boardgame/",
+                             cur_game_ratings[i,]$ID,") (",cur_game_ratings[i,]$Year,")"),
+                      cur_game_ratings[i,]$MemberRating,
+                      "--",
+                      cur_game_ratings[i,]$NumRatings,
+                      cur_game_ratings[i,]$BGGRating,
+                      cur_game_ratings[i,]$BGGRank,
+                      cur_game_ratings[i,]$Weight)
+        cat(gameline, sep = "|", file = mdfile, append = TRUE)
+        cat("\n", file = mdfile, append = TRUE)
+        
+    }
+    
+}
+
 ####################################################################################
 # STEP 1: Get the usernames of each member in the Redditors guild on BGG
 ####################################################################################
@@ -431,5 +463,4 @@ game_list_df <- game_list_df[with(game_list_df, order(-MemberRating)),]
 rownames(game_list_df) <- c(1:nrow(game_list_df))
 
 # only selecting the columns that matter for the top 100
-game_list_df[,c(1:7,14)] %>% head(n=100) %>% 
-    write.csv(file = paste0("top100-",today(),".csv"), row.names = FALSE)
+game_list_df[,c(1:7,14)] %>% head(n=100) %>% exportTop100(paste0("top100-",today()))
