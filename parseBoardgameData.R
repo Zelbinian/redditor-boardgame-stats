@@ -399,8 +399,10 @@ while(length(usernames_to_process) > 0) {
     collection <- read_xml(response$content)
     # then evaluate the request to see if it's what ya need
     
+    # is there anything in this collection?
     if (xml_find_all(collection, "//item") %>% length() == 0) {
-      # if it is, extract the info
+        
+    # if so, extract the info
     } else {
       id <- collection %>% 
         xml_find_all("/items/item/@objectid") %>% xml_text() %>% as.integer()
@@ -478,7 +480,7 @@ game_list_df$Year[game_list_df$Year == 0] <- NA
 game_list_df$MinAge[game_list_df$MinAge == 0] <- NA
 
 ####################################################################################
-# STEP 7: Sort by rating and write out top 100 to a file
+# STEP 7: Sort by rating and write out highest rated games to a file
 ####################################################################################
 
 # sorting the list by member rating, decending order
