@@ -165,25 +165,6 @@ getGuildsRatedGames <- function(guild_usernames) {
     return(games_list)
 }
 
-pruneRatings <- function(ratings, guild_size) {
-    
-    num_ratings <- game_ratings %>%
-        aggregate(MemberRating ~ ID,
-                  data = .,
-                  FUN = length)
-    
-    avg_game_ratings$NumRatings <- num_ratings[,2]
-    
-    # threshold shall be 5 or 1% of guild_size, whichever is larger
-    percentage <- guild_size * .025
-    threshold <- ifelse(percentage > 5, percentage, 5)
-    
-    table_ratings <- table(ratings)
-    to_keep <- table_ratings[rowSums(table_ratings) >= threshold,]
-    
-    return(ratings[ratings$ID %in% rownames(to_keep),])
-}
-
 assembleGameDataFile <- function(game_ratings) {
     
     # some helper variables for the while loop
@@ -458,16 +439,12 @@ while(length(usernames_to_process) > 0) {
   Sys.sleep(sleeptime__)
 }
 
-# Games that have only been rated by a few people skew the data, so also pruning
-
-game_ratings <- pruneRatings(game_ratings, guild_size)
-
 # storing the number of total ratings for stat tracking
 
 total_ratings <- nrow(game_ratings)
 
 ####################################################################################
-# STEP 3: Aggregate the ratings
+# STEP 3: Aggregate the ratings and prune the list
 ####################################################################################
 
 # Not as complex as it looks. What this says is: "Aggregate the MemberRatings across
@@ -479,6 +456,16 @@ avg_game_ratings <- game_ratings %>%
     aggregate(MemberRating ~ ID,
               data = .,
               FUN = . %>% mean() %>% round(3) %>% return())
+
+# making use of the table function to figure out # of ratings for each game 
+table_ratings <- table(game_ratings)
+avg_game_ratings$NumRatings <- rowSums(table_ratings)
+
+# pruning list so games with low numbers of ratings don't skew the data
+# The arbitrary threshold: 7.5% of the game with the most ratings
+
+avg_game_ratings <- avg_game_ratings[avg_game_ratings$NumRatings > 
+                                         max(avg_game_ratings$NumRatings) * .075,]
 
 
 ####################################################################################
@@ -505,7 +492,7 @@ game_list_df <- assembleGameDataFile(avg_game_ratings)
 ####################################################################################
 # STEP 5: Clean up unneeded variables.
 ####################################################################################
-rm(avg_game_ratings, game_ratings, usernames_to_process, sleeptime__)
+rm(avg_game_ratings, game_ratings, usernames_to_process, sleeptime__, tableratings)
 
 ####################################################################################
 # STEP 6: Look for inconsistencies in the data and cleaning them up
