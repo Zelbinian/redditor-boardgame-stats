@@ -16,6 +16,7 @@
 require("xml2")
 require("httr")
 require("magrittr")
+require("lubridate")
 
 sleeptime__ <- 5 # global setting for how long to sleep between API calls
 
@@ -296,7 +297,7 @@ exportTop100 <- function(cur_game_ratings, filename) {
         file = mdfile,
         append = TRUE)
     
-    for(i in 1:nrow(cur_game_ratings)) {
+    for (i in 1:100) {
         gameline <- c(i,
                       paste0("[",cur_game_ratings[i,]$Name,
                              "](http://www.boardgamegeek.com/boardgame/",
@@ -312,6 +313,29 @@ exportTop100 <- function(cur_game_ratings, filename) {
         
     }
     
+}
+
+exportTop10 <- function(cur_game_ratings, filename) {
+    mdfile <- paste0(filename, ".md")
+    
+    cat("Rank|Game|Rating|+/-\n",
+        file = mdfile,
+        append = FALSE)
+    cat("|--:|:-----------|---------------:|--:\n",
+        file = mdfile,
+        append = TRUE)
+    
+    for (i in 1:10) {
+        gameline <- c(i,
+                      paste0("[",cur_game_ratings[i,]$Name,
+                             "](http://www.boardgamegeek.com/boardgame/",
+                             cur_game_ratings[i,]$ID,")"),
+                      cur_game_ratings[i,]$MemberRating,
+                      "--")
+        cat(gameline, sep = "|", file = mdfile, append = TRUE)
+        cat("\n", file = mdfile, append = TRUE)
+                      
+    }
 }
 
 ####################################################################################
@@ -463,4 +487,6 @@ game_list_df <- game_list_df[with(game_list_df, order(-MemberRating)),]
 rownames(game_list_df) <- c(1:nrow(game_list_df))
 
 # only selecting the columns that matter for the top 100
-game_list_df[,c(1:7,14)] %>% head(n=100) %>% exportTop100(paste0("top100-",today()))
+game_list_df[,c(1:7,14)] %>% exportTop100(paste0("top100-",today()))
+
+game_list_df[,c(1:7,14)] %>% exportTop10(paste0("top10-",today()))
