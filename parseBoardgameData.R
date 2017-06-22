@@ -367,7 +367,7 @@ exportTop10 <- function(cur_game_ratings, prev_game_ratings, filename) {
 
 # 1290 is the guild ID, which the function uses to query the BGG API
 
-usernames_to_process <- retrieveAllUserNames(1290)
+usernames_to_process <- retrieveAllUserNames(1307)
 
 ####################################################################################
 # STEP 2: Get each member's collection of rated games (and the ratings for them, too)
@@ -439,10 +439,6 @@ while(length(usernames_to_process) > 0) {
   Sys.sleep(sleeptime__)
 }
 
-# storing the number of total ratings for stat tracking
-
-total_ratings <- nrow(game_ratings)
-
 ####################################################################################
 # STEP 3: Aggregate the ratings and prune the list
 ####################################################################################
@@ -467,6 +463,9 @@ avg_game_ratings$NumRatings <- rowSums(table_ratings)
 avg_game_ratings <- avg_game_ratings[avg_game_ratings$NumRatings > 
                                          max(avg_game_ratings$NumRatings) * .075,]
 
+# storing the number of total ratings for stat tracking
+
+total_ratings <- avg_game_ratings$NumRatings %>% sum
 
 ####################################################################################
 # STEP 4: Gather additional details about each game by id and build the final df
