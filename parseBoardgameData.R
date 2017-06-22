@@ -491,7 +491,8 @@ game_list_df <- assembleGameDataFile(avg_game_ratings)
 ####################################################################################
 # STEP 5: Clean up unneeded variables.
 ####################################################################################
-rm(avg_game_ratings, game_ratings, usernames_to_process, sleeptime__, tableratings)
+rm(avg_game_ratings, game_ratings, usernames_to_process, sleeptime__, table_ratings,
+   collection, cur_username, id, member_rating, num_usernames, request, response)
 
 ####################################################################################
 # STEP 6: Look for inconsistencies in the data and cleaning them up
