@@ -167,6 +167,13 @@ getGuildsRatedGames <- function(guild_usernames) {
 
 pruneRatings <- function(ratings, guild_size) {
     
+    num_ratings <- game_ratings %>%
+        aggregate(MemberRating ~ ID,
+                  data = .,
+                  FUN = length)
+    
+    avg_game_ratings$NumRatings <- num_ratings[,2]
+    
     # threshold shall be 5 or 1% of guild_size, whichever is larger
     percentage <- guild_size * .025
     threshold <- ifelse(percentage > 5, percentage, 5)
@@ -377,10 +384,7 @@ exportTop10 <- function(cur_game_ratings, prev_game_ratings, filename) {
 # STEP 1: Get the usernames of each member in the Redditors guild on BGG
 ####################################################################################
 
-# The request url, at least initially. The results are paginated, so multiple requests
-# will be necessary.
-
-# real guild id = 1290
+# 1290 is the guild ID, which the function uses to query the BGG API
 
 usernames_to_process <- retrieveAllUserNames(1290)
 
@@ -388,11 +392,10 @@ usernames_to_process <- retrieveAllUserNames(1290)
 # STEP 2: Get each member's collection of rated games (and the ratings for them, too)
 ####################################################################################
 
-# apply or any of the other usual tricks for looping in R won't work because guild_usernames
-# is just a simple vector, so to grab the list of rated games (and their ratings) for
+# apply or any of the other usual tricks for looping in R won't work because the processing
+# is very complicated, so to grab the list of rated games (and their ratings) for
 # each guild member we have to do it the old fashioned way.
-# 
-# Games that have only been rated by a few people skew the data, so also pruning
+
 
 game_ratings <- data.frame(ID = integer(0), MemberRating = numeric(0))
 guild_size <- length(usernames_to_process)
@@ -454,8 +457,14 @@ while(length(usernames_to_process) > 0) {
   }
   Sys.sleep(sleeptime__)
 }
- 
+
+# Games that have only been rated by a few people skew the data, so also pruning
+
 game_ratings <- pruneRatings(game_ratings, guild_size)
+
+# storing the number of total ratings for stat tracking
+
+total_ratings <- nrow(game_ratings)
 
 ####################################################################################
 # STEP 3: Aggregate the ratings
@@ -471,15 +480,6 @@ avg_game_ratings <- game_ratings %>%
               data = .,
               FUN = . %>% mean() %>% round(3) %>% return())
 
-num_ratings <- game_ratings %>%
-    aggregate(MemberRating ~ ID,
-              data = .,
-              FUN = length)
-
-avg_game_ratings$NumRatings <- num_ratings[,2]
-
-# Some memory optimization
-paste("Total game ratings for group:",nrow(game_ratings)) %>% print()
 
 ####################################################################################
 # STEP 4: Gather additional details about each game by id and build the final df
@@ -505,7 +505,7 @@ game_list_df <- assembleGameDataFile(avg_game_ratings)
 ####################################################################################
 # STEP 5: Clean up unneeded variables.
 ####################################################################################
-rm(avg_game_ratings, game_ratings, guild_usernames, sleeptime__)
+rm(avg_game_ratings, game_ratings, usernames_to_process, sleeptime__)
 
 ####################################################################################
 # STEP 6: Look for inconsistencies in the data and cleaning them up
@@ -516,13 +516,17 @@ game_list_df[game_list_df == "NA"] <- NA
 game_list_df$Year[game_list_df$Year == 0] <- NA
 game_list_df$MinAge[game_list_df$MinAge == 0] <- NA
 
+# the weights are to a crazy number of digits so we'll round those a bit
+
+game_list_df$Weight <- game_list_df$Weight %>% round(2)
+
 ####################################################################################
-# STEP 7: Sort by rating and write out highest rated games to a file
+# STEP 7: Export highest ranked games to top100 and top 10 files (diff formats)
 ####################################################################################
 
 # sorting the list by member rating, decending order
 game_list_df <- game_list_df[with(game_list_df, order(-MemberRating)),]
-# resetting rownames 
+# adding a rank column 
 rownames(game_list_df) <- c(1:nrow(game_list_df))
 
 # exporting "top xx" lists
