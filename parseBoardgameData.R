@@ -367,7 +367,7 @@ exportTop10 <- function(cur_game_ratings, prev_game_ratings, filename) {
 
 # 1290 is the guild ID, which the function uses to query the BGG API
 
-usernames_to_process <- retrieveAllUserNames(1307)
+usernames_to_process <- retrieveAllUserNames(1290)
 
 ####################################################################################
 # STEP 2: Get each member's collection of rated games (and the ratings for them, too)
@@ -517,6 +517,6 @@ game_list_df <- game_list_df[with(game_list_df, order(-MemberRating)),]
 game_list_df$Rank <- c(1:nrow(game_list_df))
 
 # exporting "top xx" lists
-game_list_df %>% exportTop100(paste0("top100-",today()))
+game_list_df %>% exportTop100(____,paste0("top100-",today()))
 
-game_list_df %>% exportTop10(paste0("top10-",today()))
+game_list_df %>% exportTop10(____,paste0("top10-",today()))
