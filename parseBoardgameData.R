@@ -514,7 +514,7 @@ game_list_df$Weight <- game_list_df$Weight %>% round(2)
 # sorting the list by member rating, decending order
 game_list_df <- game_list_df[with(game_list_df, order(-MemberRating)),]
 # adding a rank column 
-rownames(game_list_df) <- c(1:nrow(game_list_df))
+game_list_df$Rank <- c(1:nrow(game_list_df))
 
 # exporting "top xx" lists
 game_list_df %>% exportTop100(paste0("top100-",today()))
