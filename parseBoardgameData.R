@@ -517,6 +517,6 @@ game_list_df <- game_list_df[with(game_list_df, order(-MemberRating)),]
 game_list_df$Rank <- c(1:nrow(game_list_df))
 
 # exporting "top xx" lists
-game_list_df %>% exportTop100(read.csv("prevtop100.csv"),paste0("top100-",today()))
+# game_list_df %>% exportTop100(prev_top,paste0("top100-",today()))
 
-game_list_df %>% exportTop10(read.csv("prevtop100.csv"),paste0("top10-",today()))
+# game_list_df %>% exportTop10(read.csv("prevtop100.csv"),paste0("top10-",today()))
