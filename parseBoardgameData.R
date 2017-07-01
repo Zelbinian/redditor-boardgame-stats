@@ -331,7 +331,7 @@ exportTop100 <- function(cur_game_ratings, prev_game_ratings, filename) {
                       cur_game_ratings[i,]$BGGRating,
                       cur_game_ratings[i,]$BGGRank,
                       cur_game_ratings[i,]$Weight)
-        cat(gameline, sep = "|", file = mdfile, append = TRUE)
+        cat(iconv(gameline, to = "UTF-8"), sep = "|", file = mdfile, append = TRUE)
         cat("\n", file = mdfile, append = TRUE)
         
     }
@@ -355,7 +355,7 @@ exportTop10 <- function(cur_game_ratings, prev_game_ratings, filename) {
                              cur_game_ratings[i,]$ID,")"),
                       cur_game_ratings[i,]$MemberRating,
                       calcRankChange(cur_game_ratings[i,], prev_game_ratings))
-        cat(gameline, sep = "|", file = mdfile, append = TRUE)
+        cat(iconv(gameline, to = "UTF-8"), sep = "|", file = mdfile, append = TRUE)
         cat("\n", file = mdfile, append = TRUE)
                       
     }
@@ -517,6 +517,6 @@ game_list_df <- game_list_df[with(game_list_df, order(-MemberRating)),]
 game_list_df$Rank <- c(1:nrow(game_list_df))
 
 # exporting "top xx" lists
-game_list_df %>% exportTop100(____,paste0("top100-",today()))
+game_list_df %>% exportTop100(read.csv("prevtop100.csv"),paste0("top100-",today()))
 
-game_list_df %>% exportTop10(____,paste0("top10-",today()))
+game_list_df %>% exportTop10(read.csv("prevtop100.csv"),paste0("top10-",today()))
