@@ -390,6 +390,9 @@ while(length(usernames_to_process) > 0) {
   loops <- loops + 1
   paste("Total Operations:",loops) %>% print()
   
+  # every 10 loops, randomize position in the list as a small optimization
+  if (loops%%10 == 0) usernames_to_process <- sample(usernames_to_process, num_usernames)
+  
   # pop
   cur_username <- usernames_to_process[1]
   if (num_usernames > 1) {
@@ -517,6 +520,6 @@ game_list_df <- game_list_df[with(game_list_df, order(-MemberRating)),]
 game_list_df$Rank <- c(1:nrow(game_list_df))
 
 # exporting "top xx" lists
-# game_list_df %>% exportTop100(prev_top,paste0("top100-",today()))
+game_list_df %>% exportTop100(read.csv("top100-2017-08-01.csv"),paste0("top100-",today()))
 
-# game_list_df %>% exportTop10(read.csv("prevtop100.csv"),paste0("top10-",today()))
+game_list_df %>% exportTop10(read.csv("top100-2017-08-01.csv"),paste0("top10-",today()))
