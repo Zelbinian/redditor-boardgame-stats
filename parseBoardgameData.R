@@ -457,8 +457,7 @@ avg_game_ratings <- game_ratings %>%
               FUN = . %>% mean() %>% round(3) %>% return())
 
 # making use of the table function to figure out # of ratings for each game 
-table_ratings <- table(game_ratings)
-avg_game_ratings$NumRatings <- rowSums(table_ratings)
+avg_game_ratings$NumRatings <- table(game_ratings) %>% rowSums()
 
 # pruning list so games with low numbers of ratings don't skew the data
 # The arbitrary threshold: 7.5% of the game with the most ratings
@@ -520,6 +519,6 @@ game_list_df <- game_list_df[with(game_list_df, order(-MemberRating)),]
 game_list_df$Rank <- c(1:nrow(game_list_df))
 
 # exporting "top xx" lists
-game_list_df %>% exportTop100(read.csv("top100-2017-08-01.csv"),paste0("top100-",today()))
+game_list_df %>% exportTop100(read.csv("top100-2017-11-30.csv"),paste0("top100-",today()))
 
-game_list_df %>% exportTop10(read.csv("top100-2017-08-01.csv"),paste0("top10-",today()))
+game_list_df %>% exportTop10(read.csv("top100-2017-11-30.csv"),paste0("top10-",today()))
