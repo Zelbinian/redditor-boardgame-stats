@@ -19,6 +19,7 @@ require("magrittr")
 require("lubridate")
 
 sleeptime__ <- 5 # global setting for how long to sleep between API calls
+dummy_votes <- 50 # the number of dummy votes to add to each rating
 
 ####################################################################################
 # FUNCTION REPOSITORY
@@ -35,7 +36,7 @@ queryBGG <- function(request) {
     
     if (response$status_code >= 500) {
         
-        paste0("Request for '",request,"' encountered a ",status," on try ",try,".") %>% print()
+        paste0("Request for '",request,"' encountered a ",response$status_code," on try ",try,".") %>% print()
         
         # If we get a 502 or 504, that means the server is pegged and/or
         # we've been rate limited. In this case, sit and wait a good long while
@@ -415,7 +416,7 @@ while(length(usernames_to_process) > 0) {
   
   if (response$status_code != 200) {
     # in this case, push the username back onto the queue
-    paste("Got a",response$status_code,"for",cur_username,", adding back into the queue.") %>% print()
+    paste0("Got a ",response$status_code," for ",cur_username,", adding back into the queue.") %>% print()
     usernames_to_process <- c(usernames_to_process, cur_username)
   } else {
   
@@ -462,12 +463,16 @@ avg_game_ratings$NumRatings <- table(game_ratings) %>% rowSums()
 # pruning list so games with low numbers of ratings don't skew the data
 # The arbitrary threshold: 7.5% of the game with the most ratings
 
-avg_game_ratings <- avg_game_ratings[avg_game_ratings$NumRatings > 
-                                         max(avg_game_ratings$NumRatings) * .075,]
+avg_game_ratings <- avg_game_ratings[avg_game_ratings$NumRatings >= dummy_votes,]
 
 # storing the number of total ratings for stat tracking
 
 total_ratings <- avg_game_ratings$NumRatings %>% sum
+
+# modifying the ratings with some pseudo-Bayesian averaging
+
+avg_game_ratings$MemberRating <- ((avg_game_ratings$MemberRating * avg_game_ratings$NumRatings + dummy_votes * 5.5) 
+                                  / (avg_game_ratings$NumRatings + dummy_votes)) %>% round(3)
 
 ####################################################################################
 # STEP 4: Gather additional details about each game by id and build the final df
@@ -519,6 +524,6 @@ game_list_df <- game_list_df[with(game_list_df, order(-MemberRating)),]
 game_list_df$Rank <- c(1:nrow(game_list_df))
 
 # exporting "top xx" lists
-game_list_df %>% exportTop100(read.csv("top100-2017-11-30.csv"),paste0("top100-",today()))
+#game_list_df %>% exportTop100(read.csv("top100-2018-01-31.csv"),paste0("top100-",today()))
 
-game_list_df %>% exportTop10(read.csv("top100-2017-11-30.csv"),paste0("top10-",today()))
+#game_list_df %>% exportTop10(read.csv("top100-2018-01-31.csv"),paste0("top10-",today()))
