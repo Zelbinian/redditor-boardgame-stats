@@ -18,7 +18,7 @@ require("httr")
 require("magrittr")
 require("lubridate")
 
-sleeptime__ <- 2.5 # global setting for how long to sleep between API calls
+sleeptime__ <- 2 # global setting for how long to sleep between API calls
 bggApiUrl <- "https://www.boardgamegeek.com/xmlapi2/"
 ua <- "httr | https://github.com/Zelbinian/redditor-boardgame-stats"
 dummy_votes <- 50 # the number of dummy votes to add to each rating
@@ -362,27 +362,15 @@ while(!is.null(members)) {
 # STEP 3: Aggregate the ratings and prune the list
 ####################################################################################
 
-# Not as complex as it looks. What this says is: "Aggregate the MemberRatings across
-# unique IDs, and do so with this anonymous function. The anonymous function takes
-# the mean of the ratings, rounds that mean to 3 significant digits, then returns the
-# value.
-
-avg_game_ratings <- game_ratings %>%
-    aggregate(MemberRating ~ ID,
-              data = .,
-              FUN = . %>% mean() %>% round(3) %>% return())
-
-# making use of the table function to figure out # of ratings for each game 
-avg_game_ratings$NumRatings <- table(game_ratings) %>% rowSums()
-
-# pruning list so games with low numbers of ratings don't skew the data
-# The arbitrary threshold: 7.5% of the game with the most ratings
-
-avg_game_ratings <- avg_game_ratings[avg_game_ratings$NumRatings >= dummy_votes,]
+avgGameRatings <- tibble("ID" = ids, "Rating" = ratings)  %>%  # combining our vectors into a tibble
+  group_by(ID) %>%                                             # and for each game
+  summarise("Average Rating" = round(mean(Rating), 3),         # get the average rating
+            "Ratings" = rowSums(table(ID,Rating))) %>%         # and number of ratings
+  filter(Ratings >= dummy_votes)                               # finally, prune any that have too few votes
 
 # storing the number of total ratings for stat tracking
 
-total_ratings <- avg_game_ratings$NumRatings %>% sum
+totalRatings <- avgGameRatings$Ratings %>% sum
 
 # modifying the ratings with some pseudo-Bayesian averaging
 
