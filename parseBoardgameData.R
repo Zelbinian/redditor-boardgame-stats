@@ -75,14 +75,13 @@ getMembers <- function(guild_id, page) {
 retrieveAllUserNames <- function(guild_id) {
   
   # initializing helper variables
-  page <- 0
-  username_list <- vector(mode = "character")
+  page <- 1
+  username_list <- character()
   
   # the API results are paginated, so we need to do this for every page
   repeat {
     
     # grabbing the next page of members
-    page <- page + 1
     members <- getMembers(guild_id, page)
     
     # when we get past the end of the list, the XML returned by the API no longer has
@@ -91,10 +90,12 @@ retrieveAllUserNames <- function(guild_id) {
     
     # usernames are in the "name" attribute inside each member node
     # xml_attr pries them out and we append that vector to the existing one
-    members %>% xml_text() %>% c(username_list, .) -> username_list
+    username_list <- members %>% xml_text() %>% c(username_list, .) 
     
     # to prevent from throttling the server
     Sys.sleep(sleeptime__)
+    
+    page <- page + 1
   }
   
   # if the while loop has ended, we have all of our usernames
