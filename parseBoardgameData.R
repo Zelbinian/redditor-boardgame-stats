@@ -19,6 +19,8 @@ require("magrittr")
 require("lubridate")
 
 sleeptime__ <- 5 # global setting for how long to sleep between API calls
+bggApiUrl <- "https://www.boardgamegeek.com/xmlapi2/"
+ua <- "httr | https://github.com/Zelbinian/redditor-boardgame-stats"
 dummy_votes <- 50 # the number of dummy votes to add to each rating
 
 ####################################################################################
@@ -60,47 +62,28 @@ queryBGG <- function(request) {
 # extracts the data from a single page while retrieveAllUserNames feeds it a page at a
 # time.
 
-getMembers <- function(guild_id, page) {
-    
-    paste("Requesting member page",page) %>% print()
-    
-    paste0("guild?id=", guild_id, "&members=1&page=", page) %>% # build the request string for the API
-        queryBGG()                  %>% # make the request to get the XML
-        read_xml()                  %>% # read it in
-        xml_find_all("/guild/members/member/@name") %>%  # find them
-        return()                        # return them
-    
-}
-
-retrieveAllUserNames <- function(guild_id) {
+getMembers <- function(guild_id, page = 1) {
   
-  # initializing helper variables
-  page <- 1
-  username_list <- character()
+  cat("Requesting member page",page,"\n")
   
-  # the API results are paginated, so we need to do this for every page
-  repeat {
-    
-    # grabbing the next page of members
-    members <- getMembers(guild_id, page)
-    
-    # when we get past the end of the list, the XML returned by the API no longer has
-    # any "member" elements, so that's how the script can tell when we are done
-    if ( length(members) == 0 ) break
-    
-    # usernames are in the "name" attribute inside each member node
-    # xml_attr pries them out and we append that vector to the existing one
-    username_list <- members %>% xml_text() %>% c(username_list, .) 
-    
-    # to prevent from throttling the server
+  bggResp <- RETRY(verb = "GET", 
+                   url = paste0(bggApiUrl,"guild"),
+                   query = list(id = guild_id, page = page, members = 1), 
+                   user_agent(ua),
+                   body = FALSE,
+                   times = 5)
+  
+  stop_for_status(bggResp, "retrieve usernames from BGG. Investigate and try again later.")
+  
+  members <- content(bggResp) %>% xml_find_all("/guild/members/member/@name") %>% xml_text()
+  
+  if(length(members) == 0) {
+    return(members)
+  } else {
     Sys.sleep(sleeptime__)
-    
-    page <- page + 1
+    return(c(members, getMembers(guild_id, page + 1)))
   }
-  
-  # if the while loop has ended, we have all of our usernames
-  return(username_list)
-  
+    
 }
 
 getRatedGames <- function(username) {
@@ -369,7 +352,7 @@ exportTop10 <- function(cur_game_ratings, prev_game_ratings, filename) {
 
 # 1290 is the guild ID, which the function uses to query the BGG API
 
-usernames_to_process <- retrieveAllUserNames(1290)
+members <- getMembers(1290)
 
 ####################################################################################
 # STEP 2: Get each member's collection of rated games (and the ratings for them, too)
@@ -381,26 +364,26 @@ usernames_to_process <- retrieveAllUserNames(1290)
 
 
 game_ratings <- data.frame(ID = integer(0), MemberRating = numeric(0))
-guild_size <- length(usernames_to_process)
+guild_size <- length(members)
 loops <- 0
 empty_collections <- 0
 
-while(length(usernames_to_process) > 0) {
+while(length(members) > 0) {
   # some simple setup
-  num_usernames <- length(usernames_to_process)
+  num_usernames <- length(members)
   paste("Usernames in queue: ", num_usernames) %>% print()
   loops <- loops + 1
   paste("Total Operations:",loops) %>% print()
   
   # every 10 loops, randomize position in the list as a small optimization
-  if (loops%%10 == 0) usernames_to_process <- sample(usernames_to_process, num_usernames)
+  if (loops%%10 == 0) members <- sample(members, num_usernames)
   
   # pop
-  cur_username <- usernames_to_process[1]
+  cur_username <- members[1]
   if (num_usernames > 1) {
-    usernames_to_process <- usernames_to_process[2:num_usernames]
+    members <- members[2:num_usernames]
   } else {
-    usernames_to_process <- NULL
+    members <- NULL
   }
   
   # make the request
@@ -418,7 +401,7 @@ while(length(usernames_to_process) > 0) {
   if (response$status_code != 200) {
     # in this case, push the username back onto the queue
     paste0("Got a ",response$status_code," for ",cur_username,", adding back into the queue.") %>% print()
-    usernames_to_process <- c(usernames_to_process, cur_username)
+    members <- c(members, cur_username)
   } else {
   
     collection <- read_xml(response$content)
@@ -499,7 +482,7 @@ game_list_df <- assembleGameDataFile(avg_game_ratings)
 ####################################################################################
 # STEP 5: Clean up unneeded variables.
 ####################################################################################
-rm(avg_game_ratings, game_ratings, usernames_to_process, sleeptime__, table_ratings,
+rm(avg_game_ratings, game_ratings, members, sleeptime__, table_ratings,
    collection, cur_username, id, member_rating, num_usernames, request, response)
 
 ####################################################################################
