@@ -18,7 +18,7 @@ require("httr")
 require("magrittr")
 require("lubridate")
 
-sleeptime__ <- 5 # global setting for how long to sleep between API calls
+sleeptime__ <- 2.5 # global setting for how long to sleep between API calls
 bggApiUrl <- "https://www.boardgamegeek.com/xmlapi2/"
 ua <- "httr | https://github.com/Zelbinian/redditor-boardgame-stats"
 dummy_votes <- 50 # the number of dummy votes to add to each rating
