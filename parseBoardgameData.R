@@ -78,10 +78,9 @@ getMembers <- function(guild_id, page = 1) {
   
   members <- content(bggResp) %>% xml_find_all("/guild/members/member/@name") %>% xml_text()
   
-  if(length(members) == 0) {
+  if(length(members) == 0 || length(members < 10)) {
     return(members)
   } else {
-    Sys.sleep(sleeptime__)
     return(c(members, getMembers(guild_id, page + 1)))
   }
     
