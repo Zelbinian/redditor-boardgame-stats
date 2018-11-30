@@ -71,6 +71,7 @@ getMembers <- function(guild_id, page = 1) {
                    query = list(id = guild_id, page = page, members = 1), 
                    user_agent(ua),
                    body = FALSE,
+                   pause_min = sleeptime__,
                    times = 5)
   
   stop_for_status(bggResp, "retrieve usernames from BGG. Investigate and try again later.")
@@ -84,6 +85,23 @@ getMembers <- function(guild_id, page = 1) {
     return(c(members, getMembers(guild_id, page + 1)))
   }
     
+}
+
+getMemberRatings <- function(member) {
+  
+  # make the request
+  bggResp <- GET(url = paste0(bggApiUrl,"collection"),
+                 query = list(username = member, rated = 1, stats = 1,
+                              excludesubtype= "boardgameexpansion"), 
+                 user_agent(ua),
+                 body = FALSE)
+  
+  if(bggResp$status_code != 200) {
+    return(NULL)
+  } else {
+    return(items = content(bggResp) %>% xml_find_all("//item"))
+  }
+  
 }
 
 assembleGameDataFile <- function(game_ratings) {
@@ -294,72 +312,48 @@ members <- getMembers(1290)
 # STEP 2: Get each member's collection of rated games (and the ratings for them, too)
 ####################################################################################
 
-# apply or any of the other usual tricks for looping in R won't work because the processing
-# is very complicated, so to grab the list of rated games (and their ratings) for
-# each guild member we have to do it the old fashioned way.
+# storing some descriptive statistics
+guildSize <- length(members)
+emptyCollections <- 0
 
+# vectors of information to extract, starting empty
+ids <- character()
+ratings <- numeric()
 
-game_ratings <- data.frame(ID = integer(0), MemberRating = numeric(0))
-guild_size <- length(members)
-loops <- 0
-empty_collections <- 0
+# from here on in we treat the members variable like a queue. We pop one off, process it,
+# and perhaps put it back on if processing it didn't work out right away
 
-while(length(members) > 0) {
-  # some simple setup
-  num_usernames <- length(members)
-  paste("Usernames in queue: ", num_usernames) %>% print()
-  loops <- loops + 1
-  paste("Total Operations:",loops) %>% print()
-  
-  # every 10 loops, randomize position in the list as a small optimization
-  if (loops%%10 == 0) members <- sample(members, num_usernames)
+while(!is.null(members)) {
   
   # pop
-  cur_username <- members[1]
-  if (num_usernames > 1) {
-    members <- members[2:num_usernames]
+  curMember <- members[1]
+  if (length(members) > 1) {
+    members <- members[2:length(members)]
   } else {
     members <- NULL
   }
   
-  # make the request
-  # stitch together the url for the api request
-  paste0("Retrieving collection for ",cur_username) %>% print()
-  request <- paste0("https://www.boardgamegeek.com/xmlapi2/collection?", # api path for collection info
-         "username=",gsub(" ", "%20", cur_username),          # for this user (sanitized string)
-         "&rated=1",                                          # only rated games
-         "&stats=1",                                          # full stats (including ratings)
-         "&excludesubtype=boardgameexpansion")                # exclude expansions
-  response <- GET(request)
+  items <- getMemberRatings(curMember)
   
-  # if the request comes back anything other than a 200, push in the back of the queue
-  
-  if (response$status_code != 200) {
-    # in this case, push the username back onto the queue
-    paste0("Got a ",response$status_code," for ",cur_username,", adding back into the queue.") %>% print()
-    members <- c(members, cur_username)
-  } else {
-  
-    collection <- read_xml(response$content)
-    # then evaluate the request to see if it's what ya need
+  # If getMemberRatings returned null, it means BGG hasn't finished processing the member's collection yet
+  # re-queue the member but... not all the way back. Just far back enough to give BGG a bit more time,
+  # but not far back enough that the member may have time to change their collection again
+  if(is.null(items)) {
+    members %<>% append(curMember, 4) # append already checks to see if the index is larger than the length of the vector
     
-    # is there anything in this collection?
-    if (xml_find_all(collection, "//item") %>% length() == 0) {
-        empty_collections <- empty_collections + 1
-        
-    # if so, extract the info
-    } else {
-      id <- collection %>% 
-        xml_find_all("/items/item/@objectid") %>% xml_text() %>% as.integer()
-      member_rating <- collection %>% 
-        xml_find_all("/items/item/stats/rating/@value") %>% xml_text() %>% as.numeric()
+  } else {
+    
+    # if the list is empty, increment the number of empty collections
+    if(length(items) == 0) {
+      emptyCollections <- emptyCollections + 1
       
-      # then we stitch these vectors together into a data.frame
-      # and attach it to the master data.frame
-      game_ratings <- data.frame(ID = id, MemberRating = member_rating)   %>%
-        rbind(game_ratings, .)  
+    } else { # if not, extract the information and save it
+      ids <- c(ids, items %>% xml_find_all("//@objectid") %>% xml_text())
+      ratings <- c(ratings, items %>% xml_find_all("//stats/rating/@value") %>% xml_double())
     }
   }
+  
+  # sleep to avoid getting rate limited
   Sys.sleep(sleeptime__)
 }
 
@@ -419,7 +413,7 @@ game_list_df <- assembleGameDataFile(avg_game_ratings)
 # STEP 5: Clean up unneeded variables.
 ####################################################################################
 rm(avg_game_ratings, game_ratings, members, sleeptime__, table_ratings,
-   collection, cur_username, id, member_rating, num_usernames, request, response)
+   collection, cur_username, id, member_rating, numMembers, request, response)
 
 ####################################################################################
 # STEP 6: Look for inconsistencies in the data and cleaning them up
