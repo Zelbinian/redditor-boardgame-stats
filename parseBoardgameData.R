@@ -347,10 +347,6 @@ avgGameRatings$`Average Rating` <- ((avgGameRatings$`Average Rating` * avgGameRa
 gameList <- avgGameRatings %>% arrange(desc(`Average Rating`)) %>% 
   .[1:110,] %>% .$ID %>% getGameData()
 
-# the weights are to a crazy number of digits so we'll round those a bit
-
-game_list_df$Weight <- game_list_df$Weight %>% round(2)
-
 ####################################################################################
 # STEP 5: Export highest ranked games to top100 and top 10 files (diff formats)
 ####################################################################################
