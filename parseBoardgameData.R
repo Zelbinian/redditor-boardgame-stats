@@ -105,104 +105,44 @@ getMemberRatings <- function(member) {
   
 }
 
-assembleGameDataFile <- function(game_ratings) {
+getGameData <- function(gameIDs) { 
+  
+  bggResp <- RETRY(verb = "GET", 
+                   url = paste0(bggApiUrl,"thing"),
+                   query = list(stats = 1, id = paste0(gameIDs, collapse = ",")), 
+                   user_agent(ua),
+                   body = FALSE,
+                   pause_min = sleeptime__,
+                   times = 5)
+  
+  
+  stop_for_status(bggResp, "retrieve game data. Try again later.")
+  
+  gameData <- content(bggResp)
+        
+  # run the xpath for each piece of data we want
+  names <- gameData %>% 
+    xml_find_all("/items/item/name[@type='primary']/@value") %>% 
+    xml_text()
+  years <- games_batch %>% 
+    xml_find_all("/items/item/yearpublished/@value") %>% 
+    xml_integer()
+  bgg_ratings <- games_batch %>% 
+    xml_find_all("/items/item/statistics/ratings/average/@value") %>% 
+    xml_double() %>% round(3)
+  bgg_ranks <- games_batch %>% 
+    xml_find_all("/items/item/statistics/ratings/ranks/rank[@name='boardgame']/@value") %>% 
+    xml_integer()
+  weights <- games_batch %>% 
+    xml_find_all("/items/item/statistics/ratings/averageweight/@value") %>% 
+    xml_double() %>% round(3)
+        
     
-    # some helper variables for the while loop
-    num_games <- length(game_ratings$ID)       # quick access to length of the list
-    start_id <- 1                       # <
-    end_id <- slice_size <- 200         # size of batch / query
-                      
-    game_data <- data.frame(Name = character(0), # master data.frame, empty to start
-                            Year = integer(0),
-                            BGGRating = numeric(0),
-                            BGGRank = integer(0),
-                            Weight = numeric(0))  
-    
-    # The while loop lets us batch the requests so we don't have to do this one game
-    # at a time.
-    
-    while (start_id <= num_games) {
-        
-        paste0("Retrieving info for game ",start_id,"/",num_games) %>% print()
-        
-        if (end_id > num_games) end_id <- num_games # preventing reading past the end
-        
-        # get a comma-delimited list of games for this batch
-        paste0(game_ratings$ID[start_id:end_id], collapse = ",") %>%
-        # use it to retrieve the xml for this particular batch of games
-        paste0("thing?id=",
-               .,  # the previous call is being passed here
-               "&stats=1")  %>%
-            queryBGG()      %>%
-            read_xml()      ->
-            games_batch
-        
-        # run the xpath for each piece of data we want
-        names <- games_batch %>% 
-            xml_find_all("/items/item/name[@type='primary']/@value") %>% 
-            xml_text()
-        years <- games_batch %>% 
-            xml_find_all("/items/item/yearpublished/@value") %>% 
-            xml_text() %>% as.integer()
-        bgg_ratings <- games_batch %>% 
-            xml_find_all("/items/item/statistics/ratings/average/@value") %>% 
-            xml_text() %>% as.numeric()
-        bgg_ranks <- games_batch %>% 
-            xml_find_all("/items/item/statistics/ratings/ranks/rank[@name='boardgame']/@value") %>% 
-            xml_text() %>% as.integer()
-        weights <- games_batch %>% 
-            xml_find_all("/items/item/statistics/ratings/averageweight/@value") %>% 
-            xml_text() %>% as.numeric()
-        min_players <- games_batch %>% 
-            xml_find_all("/items/item/minplayers/@value") %>% 
-            xml_text() %>% as.integer()
-        max_players <- games_batch %>% 
-            xml_find_all("/items/item/maxplayers/@value") %>% 
-            xml_text() %>% as.integer()
-        min_times <- games_batch %>% 
-            xml_find_all("/items/item/minplaytime/@value") %>% 
-            xml_text() %>% as.integer()
-        max_times <- games_batch %>% 
-            xml_find_all("/items/item/maxplaytime/@value") %>% 
-            xml_text() %>% as.integer()
-        min_ages <- games_batch %>% 
-            xml_find_all("/items/item/minage/@value") %>% 
-            xml_text() %>% as.integer()
-        copies_owned <- games_batch %>% 
-            xml_find_all("/items/item/statistics/ratings/owned/@value") %>% 
-            xml_text() %>% as.integer()
-        
-        # create a new, temp data.frame that represents this batch and add the rows
-        # to the master data frame
-        game_data <- rbind(game_data,
-              data.frame(Name = names,
-                         Year = years,
-                         BGGRating = bgg_ratings,
-                         BGGRank = bgg_ranks,
-                         Weight = weights,
-                         MinPlayers = min_players,
-                         MaxPlayers = max_players,
-                         MinTime = min_times,
-                         MaxTime = max_times,
-                         MinAge = min_ages,
-                         CopiesOwned = copies_owned))
-        
-        # move the chains for the next batch
-        start_id <- start_id + slice_size
-        end_id <- end_id + slice_size
-        
-        # being nice to the poor servers by throttling the requests
-        Sys.sleep(sleeptime__)
-    }
-    
-    # add ID and MemberRating columns to the data.frame
-    game_data$ID <- game_ratings$ID
-    game_data$MemberRating <- game_ratings$MemberRating
-    game_data$NumRatings <- game_ratings$NumRatings
-    
-    # return the data.frame with columns in the expected order
-    
-    return(game_data)
+    return(tibble("Name" = names,
+                  "Year" = years,
+                  "BGG Rating" = bgg_ratings,
+                  "BGG Rank" = bgg_rank,
+                  "Weight" = weights))
 }
 
 calcRankChange <- function(game, prev_game_ratings) {
@@ -338,7 +278,6 @@ while(!is.null(members)) {
                    label = paste0(round((index/guildSize)*100,2),
                                  "% - processing: ",curMember))
   
-  
   items <- getMemberRatings(curMember)
   
   # If getMemberRatings returned null, it means BGG hasn't finished processing the member's collection yet
@@ -405,29 +344,15 @@ avgGameRatings$`Average Rating` <- ((avgGameRatings$`Average Rating` * avgGameRa
 
 # look up the game data using the ids we've gathered
 # then parse that data to build the final games list with all the things!
-game_list_df <- assembleGameDataFile(avg_game_ratings)
-
-####################################################################################
-# STEP 5: Clean up unneeded variables.
-####################################################################################
-rm(avg_game_ratings, game_ratings, members, sleeptime__, table_ratings,
-   collection, cur_username, id, member_rating, numMembers, request, response)
-
-####################################################################################
-# STEP 6: Look for inconsistencies in the data and cleaning them up
-####################################################################################
-
-# inserting true NAs
-game_list_df[game_list_df == "NA"] <- NA
-game_list_df$Year[game_list_df$Year == 0] <- NA
-game_list_df$MinAge[game_list_df$MinAge == 0] <- NA
+gameList <- avgGameRatings %>% arrange(desc(`Average Rating`)) %>% 
+  .[1:110,] %>% .$ID %>% getGameData()
 
 # the weights are to a crazy number of digits so we'll round those a bit
 
 game_list_df$Weight <- game_list_df$Weight %>% round(2)
 
 ####################################################################################
-# STEP 7: Export highest ranked games to top100 and top 10 files (diff formats)
+# STEP 5: Export highest ranked games to top100 and top 10 files (diff formats)
 ####################################################################################
 
 # sorting the list by member rating, decending order
