@@ -17,6 +17,7 @@ require("xml2")
 require("httr")
 require("magrittr")
 require("lubridate")
+library(tcltk)
 
 sleeptime__ <- 2 # global setting for how long to sleep between API calls
 bggApiUrl <- "https://www.boardgamegeek.com/xmlapi2/"
@@ -115,13 +116,7 @@ assembleGameDataFile <- function(game_ratings) {
                             Year = integer(0),
                             BGGRating = numeric(0),
                             BGGRank = integer(0),
-                            Weight = numeric(0),
-                            MinPlayers = integer(0),
-                            MaxPlayers = integer(0),
-                            MinTime = integer(0),
-                            MaxTime = integer(0),
-                            MinAge = integer(0),
-                            CopiesOwned = integer(0))  
+                            Weight = numeric(0),)  
     
     # The while loop lets us batch the requests so we don't have to do this one game
     # at a time.
@@ -323,6 +318,9 @@ ratings <- numeric()
 # from here on in we treat the members variable like a queue. We pop one off, process it,
 # and perhaps put it back on if processing it didn't work out right away
 
+# oh, and a little progress bar, how nice
+pb <- tkProgressBar(min = 0, max = guildSize, width = 450, title = "Getting member ratings..", label = "0%")
+
 while(!is.null(members)) {
   
   # pop
@@ -332,6 +330,14 @@ while(!is.null(members)) {
   } else {
     members <- NULL
   }
+  
+  index <- guildSize - length(members)
+  
+  # update progress bar 
+  setTkProgressBar(pb, index, 
+                   label = paste0(round((index/length(members))*100,2),
+                                 "% - processing: ",curMember))
+  
   
   items <- getMemberRatings(curMember)
   
@@ -356,6 +362,8 @@ while(!is.null(members)) {
   # sleep to avoid getting rate limited
   Sys.sleep(sleeptime__)
 }
+
+close(pb)
 
 ####################################################################################
 # STEP 3: Aggregate the ratings and prune the list
@@ -391,15 +399,9 @@ avgGameRatings$`Average Rating` <- ((avgGameRatings$`Average Rating` * avgGameRa
 # The additional needed data:
 #     - Name
 #     - BGG Rating
-#     - Min Playtime
-#     - Max Playtime
 #     - Game Weight
-#     - Min Recommended Age
-#     - Min Players
-#     - Max Players
 #     - Year Released
 #     - BGG Rank
-#     - Copies Owned
 
 # look up the game data using the ids we've gathered
 # then parse that data to build the final games list with all the things!
