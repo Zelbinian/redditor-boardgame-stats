@@ -21,7 +21,6 @@ require("lubridate")
 sleeptime__ <- 2 # global setting for how long to sleep between API calls
 bggApiUrl <- "https://www.boardgamegeek.com/xmlapi2/"
 ua <- "httr | https://github.com/Zelbinian/redditor-boardgame-stats"
-dummy_votes <- 50 # the number of dummy votes to add to each rating
 
 ####################################################################################
 # FUNCTION REPOSITORY
@@ -362,20 +361,28 @@ while(!is.null(members)) {
 # STEP 3: Aggregate the ratings and prune the list
 ####################################################################################
 
+# determine how many votes we need (and how many to use to weight things towards the center
+# via function based on the size of the guild; the last part just lops off the decimal
+# it's a good thing the guild is as large as it is otherwise this wouldn't work
+# this is... such guess work
+threshold <- log(guildSize, 2.5) + 5 
+
 avgGameRatings <- tibble("ID" = ids, "Rating" = ratings)  %>%  # combining our vectors into a tibble
   group_by(ID) %>%                                             # and for each game
   summarise("Average Rating" = round(mean(Rating), 3),         # get the average rating
             "Ratings" = rowSums(table(ID,Rating))) %>%         # and number of ratings
-  filter(Ratings >= dummy_votes)                               # finally, prune any that have too few votes
+  filter(Ratings >= threshold)                               # finally, prune any that have too few votes
 
 # storing the number of total ratings for stat tracking
 
 totalRatings <- avgGameRatings$Ratings %>% sum
 
 # modifying the ratings with some pseudo-Bayesian averaging
+# first, use the data we have to figure out the expected value of a rating for this data set
+expectedValue <- mean(avgGameRatings$`Average Rating`)
 
-avg_game_ratings$MemberRating <- ((avg_game_ratings$MemberRating * avg_game_ratings$NumRatings + dummy_votes * 5.5) 
-                                  / (avg_game_ratings$NumRatings + dummy_votes)) %>% round(3)
+avgGameRatings$`Average Rating` <- ((avgGameRatings$`Average Rating` * avgGameRatings$Ratings + threshold * expectedValue) 
+                                  / (avgGameRatings$Ratings + threshold)) %>% round(3)
 
 ####################################################################################
 # STEP 4: Gather additional details about each game by id and build the final df
