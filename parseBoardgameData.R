@@ -347,12 +347,12 @@ avgGameRatings$`Average Rating` <- ((avgGameRatings$`Average Rating` * avgGameRa
 gameList <- avgGameRatings %>% arrange(desc(`Average Rating`)) %>% 
   .[1:110,] %>% .$ID %>% getGameData()
 
+# adding a rank column 
+gameList %>% mutate(Rank = row_number())
+
 ####################################################################################
 # STEP 5: Export highest ranked games to top100 and top 10 files (diff formats)
 ####################################################################################
-
-# adding a rank column 
-game_list_df$Rank <- c(1:nrow(game_list_df))
 
 # exporting "top xx" lists
 #game_list_df %>% exportTop100(read.csv("top100-2018-01-31.csv"),paste0("top100-",today()))
