@@ -124,24 +124,24 @@ getGameData <- function(gameIDs) {
   names <- gameData %>% 
     xml_find_all("/items/item/name[@type='primary']/@value") %>% 
     xml_text()
-  years <- games_batch %>% 
+  years <- gameData %>% 
     xml_find_all("/items/item/yearpublished/@value") %>% 
     xml_integer()
-  bgg_ratings <- games_batch %>% 
+  bgg_ratings <- gameData %>% 
     xml_find_all("/items/item/statistics/ratings/average/@value") %>% 
     xml_double() %>% round(3)
-  bgg_ranks <- games_batch %>% 
+  bgg_ranks <- gameData %>% 
     xml_find_all("/items/item/statistics/ratings/ranks/rank[@name='boardgame']/@value") %>% 
     xml_integer()
-  weights <- games_batch %>% 
+  weights <- gameData %>% 
     xml_find_all("/items/item/statistics/ratings/averageweight/@value") %>% 
     xml_double() %>% round(3)
-        
     
-    return(tibble("Name" = names,
+    return(tibble("ID" = gameIDs, 
+                  "Name" = names,
                   "Year" = years,
                   "BGG Rating" = bgg_ratings,
-                  "BGG Rank" = bgg_rank,
+                  "BGG Rank" = bgg_ranks,
                   "Weight" = weights))
 }
 
