@@ -116,7 +116,7 @@ assembleGameDataFile <- function(game_ratings) {
                             Year = integer(0),
                             BGGRating = numeric(0),
                             BGGRank = integer(0),
-                            Weight = numeric(0),)  
+                            Weight = numeric(0))  
     
     # The while loop lets us batch the requests so we don't have to do this one game
     # at a time.
@@ -335,7 +335,7 @@ while(!is.null(members)) {
   
   # update progress bar 
   setTkProgressBar(pb, index, 
-                   label = paste0(round((index/length(members))*100,2),
+                   label = paste0(round((index/guildSize)*100,2),
                                  "% - processing: ",curMember))
   
   
