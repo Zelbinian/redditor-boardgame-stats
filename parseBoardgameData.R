@@ -351,8 +351,6 @@ gameList <- avgGameRatings %>% arrange(desc(`Average Rating`)) %>%
 # STEP 5: Export highest ranked games to top100 and top 10 files (diff formats)
 ####################################################################################
 
-# sorting the list by member rating, decending order
-game_list_df <- game_list_df[with(game_list_df, order(-MemberRating)),]
 # adding a rank column 
 game_list_df$Rank <- c(1:nrow(game_list_df))
 
