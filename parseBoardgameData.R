@@ -105,44 +105,39 @@ getMemberRatings <- function(member) {
   
 }
 
-getGameData <- function(gameIDs) { 
+getGameData <- function(ratingData) { 
   
   bggResp <- RETRY(verb = "GET", 
                    url = paste0(bggApiUrl,"thing"),
-                   query = list(stats = 1, id = paste0(gameIDs, collapse = ",")), 
+                   query = list(stats = 1, id = paste0(ratingData$ID, collapse = ",")), 
                    user_agent(ua),
                    body = FALSE,
                    pause_min = sleeptime__,
                    times = 5)
-  
   
   stop_for_status(bggResp, "retrieve game data. Try again later.")
   
   gameData <- content(bggResp)
         
   # run the xpath for each piece of data we want
-  names <- gameData %>% 
-    xml_find_all("/items/item/name[@type='primary']/@value") %>% 
-    xml_text()
-  years <- gameData %>% 
-    xml_find_all("/items/item/yearpublished/@value") %>% 
-    xml_integer()
-  bgg_ratings <- gameData %>% 
-    xml_find_all("/items/item/statistics/ratings/average/@value") %>% 
-    xml_double() %>% round(3)
-  bgg_ranks <- gameData %>% 
-    xml_find_all("/items/item/statistics/ratings/ranks/rank[@name='boardgame']/@value") %>% 
-    xml_integer()
-  weights <- gameData %>% 
-    xml_find_all("/items/item/statistics/ratings/averageweight/@value") %>% 
-    xml_double() %>% round(3)
+  ratingData %<>% mutate(
+      Name = gameData %>% 
+          xml_find_all("/items/item/name[@type='primary']/@value") %>% 
+          xml_text(),
+      Year = gameData %>% 
+          xml_find_all("/items/item/yearpublished/@value") %>% 
+          xml_integer(),
+      `BGG Rating` = gameData %>% 
+          xml_find_all("/items/item/statistics/ratings/average/@value") %>% 
+          xml_double() %>% round(3),
+      `BGG Rank` = gameData %>% 
+          xml_find_all("/items/item/statistics/ratings/ranks/rank[@name='boardgame']/@value") %>% 
+          xml_integer(),
+      Weight = gameData %>% 
+          xml_find_all("/items/item/statistics/ratings/averageweight/@value") %>% 
+          xml_double() %>% round(3))
     
-    return(tibble("ID" = gameIDs, 
-                  "Name" = names,
-                  "Year" = years,
-                  "BGG Rating" = bgg_ratings,
-                  "BGG Rank" = bgg_ranks,
-                  "Weight" = weights))
+    return(ratingData)
 }
 
 calcRankChange <- function(game, prev_game_ratings) {
@@ -312,9 +307,9 @@ close(pb)
 # via function based on the size of the guild; the last part just lops off the decimal
 # it's a good thing the guild is as large as it is otherwise this wouldn't work
 # this is... such guess work
-threshold <- log(guildSize, 2.5) + 5 
+threshold <- ifelse(guildSize * .01 > 5, (guildSize * .01) %/% 1, 5)
 
-avgGameRatings <- tibble("ID" = ids, "Rating" = ratings)  %>%  # combining our vectors into a tibble
+gameRatings <- tibble("ID" = ids, "Rating" = ratings)  %>%  # combining our vectors into a tibble
   group_by(ID) %>%                                             # and for each game
   summarise("Average Rating" = round(mean(Rating), 3),         # get the average rating
             "Ratings" = rowSums(table(ID,Rating))) %>%         # and number of ratings
@@ -322,14 +317,14 @@ avgGameRatings <- tibble("ID" = ids, "Rating" = ratings)  %>%  # combining our v
 
 # storing the number of total ratings for stat tracking
 
-totalRatings <- avgGameRatings$Ratings %>% sum
+totalRatings <- gameRatings$Ratings %>% sum
 
 # modifying the ratings with some pseudo-Bayesian averaging
 # first, use the data we have to figure out the expected value of a rating for this data set
-expectedValue <- mean(avgGameRatings$`Average Rating`)
+expectedValue <- mean(gameRatings$`Average Rating`)
 
-avgGameRatings$`Average Rating` <- ((avgGameRatings$`Average Rating` * avgGameRatings$Ratings + threshold * expectedValue) 
-                                  / (avgGameRatings$Ratings + threshold)) %>% round(3)
+gameRatings$`Average Rating` <- ((gameRatings$`Average Rating` * gameRatings$Ratings + threshold * expectedValue) 
+                                  / (gameRatings$Ratings + threshold)) %>% round(3)
 
 ####################################################################################
 # STEP 4: Gather additional details about each game by id and build the final df
@@ -342,13 +337,15 @@ avgGameRatings$`Average Rating` <- ((avgGameRatings$`Average Rating` * avgGameRa
 #     - Year Released
 #     - BGG Rank
 
+# subset the current data to focus on, as a separate variable for now just in case
+gameRatingsTop <- gameRatings %>% arrange(desc(`Average Rating`)) %>% .[1:110,]
+
 # look up the game data using the ids we've gathered
 # then parse that data to build the final games list with all the things!
-gameList <- avgGameRatings %>% arrange(desc(`Average Rating`)) %>% 
-  .[1:110,] %>% .$ID %>% getGameData()
+gameRatingsTop %<>% getGameData()
 
 # adding a rank column 
-gameList %>% mutate(Rank = row_number())
+#gameList %>% mutate(Rank = row_number())
 
 ####################################################################################
 # STEP 5: Export highest ranked games to top100 and top 10 files (diff formats)
