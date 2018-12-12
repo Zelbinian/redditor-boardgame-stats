@@ -29,34 +29,6 @@ ua <- "httr | https://github.com/Zelbinian/redditor-boardgame-stats"
 # script runs.
 ####################################################################################
 
-# The BGG API/server is wonky enough that sometimes queries fail unexpectedly. This should
-# protect against that.
-
-queryBGG <- function(request) {
-    
-    response <- GET(paste0("https://www.boardgamegeek.com/xmlapi2/",request))
-    
-    if (response$status_code >= 500) {
-        
-        paste0("Request for '",request,"' encountered a ",response$status_code," on try ",try,".") %>% print()
-        
-        # If we get a 502 or 504, that means the server is pegged and/or
-        # we've been rate limited. In this case, sit and wait a good long while
-        # before making another attempt.
-        
-        Sys.sleep(60)
-        
-        paste("BGG returned status", response$status_code, "for query:\n", request) %>% 
-            warning()
-        
-        # try again
-        response <- GET(request)
-    }
-    
-    return(response$content)
-    
-}
-
 # This does the real work to retrieve the usernames from the guild information.
 # It's wrapped with retrieveAllUserNames because the data is paginated, so getMemberNodes
 # extracts the data from a single page while retrieveAllUserNames feeds it a page at a
@@ -249,6 +221,7 @@ emptyCollections <- 0
 # vectors of information to extract, starting empty
 ids <- character()
 ratings <- numeric()
+raters <- character()
 
 # from here on in we treat the members variable like a queue. We pop one off, process it,
 # and perhaps put it back on if processing it didn't work out right away
@@ -283,13 +256,17 @@ while(!is.null(members)) {
     
   } else {
     
+    numItems <- length(items)
+    
     # if the list is empty, increment the number of empty collections
-    if(length(items) == 0) {
-      emptyCollections <- emptyCollections + 1
-      
-    } else { # if not, extract the information and save it
+    if(numItems >= 10)  { # if not, extract the information and save it
       ids <- c(ids, items %>% xml_find_all("//@objectid") %>% xml_text())
       ratings <- c(ratings, items %>% xml_find_all("//stats/rating/@value") %>% xml_double())
+      raters <- c(raters, rep(curMember, length(items)))
+    } else {
+      if (numItems == 0) {
+        emptyCollections <- emptyCollections + 1
+      }
     }
   }
   
