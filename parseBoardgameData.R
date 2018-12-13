@@ -221,7 +221,6 @@ emptyCollections <- 0
 # vectors of information to extract, starting empty
 ids <- character()
 ratings <- numeric()
-raters <- character()
 
 # from here on in we treat the members variable like a queue. We pop one off, process it,
 # and perhaps put it back on if processing it didn't work out right away
@@ -262,7 +261,6 @@ while(!is.null(members)) {
     if(numItems >= 10)  { # if not, extract the information and save it
       ids <- c(ids, items %>% xml_find_all("//@objectid") %>% xml_text())
       ratings <- c(ratings, items %>% xml_find_all("//stats/rating/@value") %>% xml_double())
-      raters <- c(raters, rep(curMember, length(items)))
     } else {
       if (numItems == 0) {
         emptyCollections <- emptyCollections + 1
