@@ -11,12 +11,12 @@
 # SCRIPT SETUP
 ####################################################################################
 
-# Requiring the xml2 package because this is what the BoardGameGeek API returns
-
-require("xml2")
-require("httr")
-require("magrittr")
-require("lubridate")
+library(xml2)
+library(httr)
+library(magrittr)
+library(lubridate)
+library(dplyr)
+library(tibble)
 library(tcltk)
 
 sleeptime__ <- 2 # global setting for how long to sleep between API calls
@@ -280,7 +280,7 @@ close(pb)
 # STEP 3: Aggregate the ratings and prune the list
 ####################################################################################
 
-# determine how many votes we need (and how many to use to weight things towards the center
+# determine how many vote to use to weight things towards the center
 # via function based on the size of the guild; the last part just lops off the decimal
 # it's a good thing the guild is as large as it is otherwise this wouldn't work
 # this is... such guess work
@@ -289,8 +289,7 @@ threshold <- ifelse(guildSize * .01 > 5, (guildSize * .01) %/% 1, 5)
 gameRatings <- tibble("ID" = ids, "Rating" = ratings)  %>%  # combining our vectors into a tibble
   group_by(ID) %>%                                             # and for each game
   summarise("Average Rating" = round(mean(Rating), 3),         # get the average rating
-            "Ratings" = rowSums(table(ID,Rating))) %>%         # and number of ratings
-  filter(Ratings >= threshold)                               # finally, prune any that have too few votes
+            "Ratings" = rowSums(table(ID,Rating)))           # and number of ratings
 
 # storing the number of total ratings for stat tracking
 
