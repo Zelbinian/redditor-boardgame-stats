@@ -147,35 +147,36 @@ calcRankChange <- function(game, prev_game_ratings) {
     
 }
 
-exportTop100 <- function(cur_game_ratings, prev_game_ratings, filename) {
+exportTop100 <- function(cur_game_ratings, prev_game_ratings, filename = paste0("top100-", today())) {
     
     # first, write cur_game_ratings as a CSV
     write.csv(cur_game_ratings, paste0(filename, ".csv"))
     
-    mdfile <- paste0(filename, ".md")
+    outputFile <- file(paste0(filename,".txt"), open = "w+", encoding = "native.enc")
     
-    cat("Rank|Game|Sub Rating|+/-|# Ratings|BGG Rating|BGG Rank|BGG Weight\n",
-        file = mdfile,
-        append = FALSE)
-    cat(":-|:-|:-|:-|:-|:-|:-|:-\n",
-        file = mdfile,
-        append = TRUE)
+    writeLines(c("Rank|Game|Sub Rating|+/-|# Ratings|BGG Rating|BGG Rank|BGG Weight",
+                 ":-|:-|:-|:-|:-|:-|:-|:-"),
+               outputFile,
+               useBytes = T)
     
     for (i in 1:100) {
-        gameline <- c(i,
-                      paste0("[",cur_game_ratings[i,]$Name,
-                             "](http://www.boardgamegeek.com/boardgame/",
-                             cur_game_ratings[i,]$ID,") (",cur_game_ratings[i,]$Year,")"),
-                      cur_game_ratings[i,]$`Average Rating`,
-                      calcRankChange(cur_game_ratings[i,], prev_game_ratings),
-                      cur_game_ratings[i,]$Ratings,
-                      cur_game_ratings[i,]$`BGG Rating`,
-                      cur_game_ratings[i,]$`BGG Rank`,
-                      cur_game_ratings[i,]$Weight)
-        cat(iconv(gameline, to = "UTF-8"), sep = "|", file = mdfile, append = TRUE)
-        cat("\n", file = mdfile, append = TRUE)
+        
+        paste(i,
+              paste0("[",cur_game_ratings[i,]$Name, 
+                     "](http://www.boardgamegeek.com/boardgame/",
+                     cur_game_ratings[i,]$ID,") (",cur_game_ratings[i,]$Year,")"),
+              cur_game_ratings[i,]$`Average Rating`,
+              calcRankChange(cur_game_ratings[i,], prev_game_ratings),
+              cur_game_ratings[i,]$Ratings,
+              cur_game_ratings[i,]$`BGG Rating`,
+              cur_game_ratings[i,]$`BGG Rank`,
+              cur_game_ratings[i,]$Weight,
+              sep = "|") %>%
+        writeLines(outputFile, useBytes = T)
         
     }
+    
+    close(outputFile)
     
 }
 
