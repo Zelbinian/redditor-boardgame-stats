@@ -166,11 +166,11 @@ exportTop100 <- function(cur_game_ratings, prev_game_ratings, filename) {
                       paste0("[",cur_game_ratings[i,]$Name,
                              "](http://www.boardgamegeek.com/boardgame/",
                              cur_game_ratings[i,]$ID,") (",cur_game_ratings[i,]$Year,")"),
-                      cur_game_ratings[i,]$MemberRating,
+                      cur_game_ratings[i,]$`Average Rating`,
                       calcRankChange(cur_game_ratings[i,], prev_game_ratings),
-                      cur_game_ratings[i,]$NumRatings,
-                      cur_game_ratings[i,]$BGGRating,
-                      cur_game_ratings[i,]$BGGRank,
+                      cur_game_ratings[i,]$Ratings,
+                      cur_game_ratings[i,]$`BGG Rating`,
+                      cur_game_ratings[i,]$`BGG Rank`,
                       cur_game_ratings[i,]$Weight)
         cat(iconv(gameline, to = "UTF-8"), sep = "|", file = mdfile, append = TRUE)
         cat("\n", file = mdfile, append = TRUE)
@@ -194,7 +194,7 @@ exportTop10 <- function(cur_game_ratings, prev_game_ratings, filename) {
                       paste0("[",cur_game_ratings[i,]$Name,
                              "](http://www.boardgamegeek.com/boardgame/",
                              cur_game_ratings[i,]$ID,")"),
-                      cur_game_ratings[i,]$MemberRating,
+                      cur_game_ratings[i,]$`Average Rating`,
                       calcRankChange(cur_game_ratings[i,], prev_game_ratings))
         cat(iconv(gameline, to = "UTF-8"), sep = "|", file = mdfile, append = TRUE)
         cat("\n", file = mdfile, append = TRUE)
@@ -312,14 +312,15 @@ gameRatings$`Average Rating` <- ((gameRatings$`Average Rating` * gameRatings$Rat
 #     - BGG Rank
 
 # subset the current data to focus on, as a separate variable for now just in case
-gameRatingsTop <- gameRatings %>% arrange(desc(`Average Rating`)) %>% .[1:110,]
+gameRatingsSorted <- gameRatings %>% arrange(desc(`Average Rating`))
+gameRatingsTop <- gameRatingsSorted[1:110,]
 
 # look up the game data using the ids we've gathered
 # then parse that data to build the final games list with all the things!
 gameRatingsTop %<>% getGameData()
 
 # adding a rank column 
-#gameList %>% mutate(Rank = row_number())
+gameRatingsTop %<>% mutate(Rank = row_number())
 
 ####################################################################################
 # STEP 5: Export highest ranked games to top100 and top 10 files (diff formats)
